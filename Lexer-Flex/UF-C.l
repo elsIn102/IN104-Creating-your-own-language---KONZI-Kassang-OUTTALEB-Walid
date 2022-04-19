@@ -19,7 +19,7 @@
 sNaZZle        { return SNAZZLE; }
 type           { return TYPE; }
 end            { return END; }
-"has fans in number of" {return FH;}
+"has fans in number of" {return FANS;}
 "has an IQ of" { return IQ; }
 "weights"      {return KG;}
 "got broken bones in number of" {return BB;}
