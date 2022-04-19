@@ -15,7 +15,7 @@
 %union {
   int ival;
   float fval;
-  char *sval;
+  char* sval;
 }
 
 // define the constant-string tokens:
