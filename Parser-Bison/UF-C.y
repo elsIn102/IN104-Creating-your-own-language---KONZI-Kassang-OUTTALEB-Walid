@@ -19,7 +19,7 @@
 }
 
 // define the constant-string tokens:
-%token IQ 
+%token IQ FH BB 
 %token END ENDL
 
 // define the "terminal symbol" token types I'm going to use (in CAPS
@@ -28,8 +28,8 @@
 %token <fval> FLOAT
 %token <sval> STRING
 
-%type<sval> id
 
+%type<sval> id
 %%
 
 // the first rule defined is the highest-level rule, which in our
@@ -48,13 +48,22 @@ typelines:
   | typeline
   ;
 typeline:
+  id FH INT ENDLS {
+    cout << "new defined snazzle type:" << $1 << endl;
+    free($1);
+  }
+  id BB STRING ENDLS{
+    cout <<"new defined snazzle type:"<< $1 <<endl;
+    free($1);
+  }
   id IQ FLOAT ENDLS {
       cout << "New defined float: " << $1 << " of value: " << $3 << endl;
       free($1);
     }
   ;
+  
 id:
-  STRING { $$ = $1; }
+    STRING { $$ = $1; }
   ;
 body_section:
   body_lines
