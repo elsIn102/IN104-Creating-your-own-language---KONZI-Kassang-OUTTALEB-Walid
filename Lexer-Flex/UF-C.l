@@ -16,8 +16,13 @@
 <COMMENTS>.     ;                    // ignore every other character while we are in this state
 
 [ \t] ;
+sNaZZle        { return SNAZZLE; }
+type           { return TYPE; }
 end            { return END; }
+"has fans in number of" {return FH;}
 "has an IQ of" { return IQ; }
+"weights"      {return KG;}
+"got broken bones in number of" {return BB;}
 [0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
 [0-9]+         { yylval.ival = atoi(yytext); return INT; }
 [a-zA-Z0-9]+   {
