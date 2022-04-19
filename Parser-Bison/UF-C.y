@@ -19,7 +19,7 @@
 }
 
 // define the constant-string tokens:
-%token SNAZZLE TYPE
+%token IQ 
 %token END ENDL
 
 // define the "terminal symbol" token types I'm going to use (in CAPS
@@ -33,15 +33,11 @@
 // the first rule defined is the highest-level rule, which in our
 // case is just the concept of a whole "snazzle file":
 snazzle:
-  header template body_section footer {
+  template body_section footer {
       cout << "done with a snazzle file!" << endl;
     }
   ;
-header:
-  SNAZZLE FLOAT ENDLS {
-      cout << "reading a snazzle file version " << $2 << endl;
-    }
-  ;
+
 template:
   typelines
   ;
@@ -50,10 +46,13 @@ typelines:
   | typeline
   ;
 typeline:
-  TYPE STRING ENDLS {
+  id IQ FLOAT ENDLS {
       cout << "new defined snazzle type: " << $2 << endl;
       free($2);
     }
+  
+id:
+  STRING
   ;
 body_section:
   body_lines
