@@ -16,8 +16,6 @@
 <COMMENTS>.     ;                    // ignore every other character while we are in this state
 
 [ \t] ;
-sNaZZle        { return SNAZZLE; }
-type           { return TYPE; }
 end            { return END; }
 "has an IQ of" { return IQ; }
 [0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }

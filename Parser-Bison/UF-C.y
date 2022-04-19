@@ -28,6 +28,8 @@
 %token <fval> FLOAT
 %token <sval> STRING
 
+%type<sval> id
+
 %%
 
 // the first rule defined is the highest-level rule, which in our
@@ -47,12 +49,12 @@ typelines:
   ;
 typeline:
   id IQ FLOAT ENDLS {
-      cout << "new defined snazzle type: " << $2 << endl;
-      free($2);
+      cout << "New defined float: " << $1 << " of value: " << $3 << endl;
+      free($1);
     }
-  
+  ;
 id:
-  STRING
+  STRING { $$ = $1; }
   ;
 body_section:
   body_lines
