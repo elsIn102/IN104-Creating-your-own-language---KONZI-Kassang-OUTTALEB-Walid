@@ -53,11 +53,18 @@
 }
 
 // define the constant-string tokens:
-%token IQ FANS BONES KG
 %token END ENDL
-%token BEGIN_ARGS END_ARGS END_FUNC RETURN
 
-%token AND_CONDITION OR_CONDITION AND RETURN_VAR
+%token ASSIGN AND
+%token IQ FANS BONES KG
+%token PRINT
+
+%token BEGIN_ARGS END_ARGS END_FUNC RETURN
+%token FUNC_BEGIN_ARGS BREAK CONTINUE
+
+%token AND_CONDITION OR_CONDITION BEGIN_RETURN_VAR
+
+%token WHILE LOOP_NOTNULL LOOP_GTR LOOP_EQ LOOP_DIFF LOOP_BEGIN_ACTION
 
 // define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the union:
@@ -65,6 +72,7 @@
 %token <fval> FLOAT
 %token <sval> STRING
 %token <uival> UINT
+%token VOID
 
 %type<sval> id
 %type<argList> args
@@ -123,7 +131,9 @@ function_def:
     }
   ;
 func_body:
-  body_lines {id|INT|FLOAT} RETURN END_FUNC
+  body_lines id RETURN END_FUNC
+  | body_lines INT RETURN END_FUNC
+  | body_lines FLOAT RETURN END_FUNC
   {
     cout << "function returned : " << $2 << endl;
     //free id
@@ -132,13 +142,13 @@ func_body:
 
 
 args:
-  args ',' id { $$.argval.type = 2; $$.argval.sval = $3; $$.next = $1; }
-  | args ',' FLOAT { $$.argval.type = 1; $$.argval.fval = $3; $$.next = $1; }
-  | args ',' INT { $$.argval.type = 0; $$.argval.ival = $3; $$.next = $1; }
+  args {','|AND} id { $$.argval.type = 2; $$.argval.sval = $3; $$.next = $1; }
+  | args {','|AND} FLOAT { $$.argval.type = 1; $$.argval.fval = $3; $$.next = $1; }
+  | args {','|AND} INT { $$.argval.type = 0; $$.argval.ival = $3; $$.next = $1; }
   | id { $$.argval.type = 2; $$.argval.sval = $1; }
   | FLOAT { $$.argval.type = 1; $$.argval.fval = $1; }
   | INT { $$.argval.type = 0; $$.argval.ival = $1; }
-  | 
+  | VOID {}
   ;
 
 id:
@@ -158,8 +168,49 @@ body_line:
   | test
   | func_call
   | loop
+  | print
+  | BREAK
+  | CONTINUE
+  | 
   ;
+print:
+  PRINT args
+  ;
+assignment:
+  id ASSIGN id
+  ;
+test:
+  test_conditions test_branchs
+  ;
+test_conditions:
+  test_conditions test_condition
+  | test_condition
+  ;
+test_condition:
 
+  ;
+test_branchs:
+  test_branchs test_branch
+  | test_branch
+  ;
+test_branch:
+  id test_values BEGIN_ARGS args BEGIN_RETURN_VAR ids
+  ;
+test_values:
+
+  ;
+func_call:
+  id ASSIGN ids FUNC_BEGIN_ARGS args
+  ;
+loop:
+  id WHILE id LOOP_NOTNULL LOOP_BEGIN_ACTION body_line
+  | id WHILE id LOOP_GTR LOOP_BEGIN_ACTION body_line
+  | id WHILE id LOOP_EQ LOOP_BEGIN_ACTION body_line
+  | id WHILE id LOOP_DIFF LOOP_BEGIN_ACTION body_line
+  ;
+ids:
+  ids AND id
+  | id;
 footer:
   END
   | END ENDLS

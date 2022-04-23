@@ -32,13 +32,13 @@ end            { return END; }
 "and" {return AND;}
 "then supports" {return OR_CONDITIONS;}
 "using" {return BEGIN_ARGS;}
-"giving the money to" {return RETURN_VAR;}
+"giving the money to" {return BEGIN_RETURN_VAR;}
 
 
 "beats down until" {return WHILE;}
-"gives up" {return EQUAL_ZERO;}
-"until someone splits them up" {return DIFFERENT;}
-"they come to an agreement" {return EQUAL;}
+"gives up" {return LOOP_NOTNULL;}
+"someone splits them up" {return LOOP_DIFF;}
+"they come to an agreement" {return LOOP_EQ;}
 "the match is interrupted" {return BREAK;}
 "end of the round" {return CONTINUE;}
 "the ring girl shows" {return PRINT;}
