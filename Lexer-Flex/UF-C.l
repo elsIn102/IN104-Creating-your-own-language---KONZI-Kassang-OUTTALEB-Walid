@@ -28,9 +28,9 @@ end            { return END; }
 
 "is thrown out" {return RETURN;}
 "hits" {return ASSIGN;}
-"bets on" {return AND_CONDITIONS;}
+"bets on" {return BEGIN_AND_CONDITIONS;}
 "and" {return AND;}
-"then supports" {return OR_CONDITIONS;}
+"then supports" {return BEGIN_OR_CONDITIONS;}
 "using" {return BEGIN_ARGS;}
 "giving the money to" {return BEGIN_RETURN_VAR;}
 

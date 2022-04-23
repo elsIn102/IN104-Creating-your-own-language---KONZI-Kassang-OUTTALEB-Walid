@@ -62,7 +62,7 @@
 %token BEGIN_ARGS END_ARGS END_FUNC RETURN
 %token FUNC_BEGIN_ARGS BREAK CONTINUE
 
-%token AND_CONDITION OR_CONDITION BEGIN_RETURN_VAR
+%token BEGIN_AND_CONDITIONS BEGIN_OR_CONDITIONS BEGIN_RETURN_VAR
 
 %token WHILE LOOP_NOTNULL LOOP_GTR LOOP_EQ LOOP_DIFF LOOP_BEGIN_ACTION
 
@@ -187,7 +187,7 @@ test_conditions:
   | test_condition
   ;
 test_condition:
-
+  
   ;
 test_branchs:
   test_branchs test_branch
@@ -197,7 +197,7 @@ test_branch:
   id test_values BEGIN_ARGS args BEGIN_RETURN_VAR ids
   ;
 test_values:
-
+  BEGIN_AND_CONDITIONS ids BEGIN_OR_CONDITIONS ids
   ;
 func_call:
   id ASSIGN ids FUNC_BEGIN_ARGS args
