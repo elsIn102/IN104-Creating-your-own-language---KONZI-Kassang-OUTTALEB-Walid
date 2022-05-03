@@ -22,21 +22,27 @@
     char* sval;
   }
   */
+%}
+
+%code requires {
+  enum AstType {atAssignment, atFuncCall, atId, atInt, atFloat, atAdd, atMinus, atMultiply, atDivide};
 
   struct AstNode
-  { 
-    enum AstType {atLet, atInvoke, atId, atInt, atAdd};
-
-    AstType type;
-    string s; int i;
-    int child, child2;
+  {
+    enum AstType type;
+    char* s; int i; float f;
+    struct AstNode *child1;
+    struct AstNode *child2;
   };
-%}
+}
 
 %union {
   int ival;
   float fval;
   char* sval;
+
+  struct AstNode* nodeVal;
+  enum AstType typeVal;
 }
 
 // define the constant-string tokens:
@@ -69,6 +75,8 @@
 %token VOID
 
 %type<sval> id
+%type<nodeVal> exp
+%type<typeVal> operator
 
 %%
 
@@ -167,15 +175,43 @@ body_line:
   | 
   ;
 exp:
-  exp operator exp
-  | INT
+  exp operator exp 
+    { 
+      struct AstNode *node = (struct AstNode*) malloc(sizeof (struct AstNode)); 
+      if (node!=NULL)
+      {
+        node->type = $2; 
+        node->child1 = $1; 
+        node->child2 = $3;  
+      } //Renvoyer une erreur si node==NULL
+      $$ = node;
+    }
+  | INT 
+    { 
+      struct AstNode *node = (struct AstNode*) malloc(sizeof (struct AstNode));
+      if (node!=NULL)
+      {
+        node->type = atInt; 
+        node->i = $1;
+      } //Renvoyer une erreur si node==NULL
+      $$ = node;
+    }
   | FLOAT
+    { 
+      struct AstNode *node = (struct AstNode*) malloc(sizeof (struct AstNode));
+      if (node!=NULL)
+      {
+        node->type = atFloat; 
+        node->f = $1;
+      } //Renvoyer une erreur si node==NULL
+      $$ = node;
+    }
   ;
 operator:
-  ADD
-  | MINUS
-  | MULTIPLY
-  | DIVIDE
+  ADD { $$ = atAdd; }
+  | MINUS { $$ = atMinus; }
+  | MULTIPLY { $$ = atDivide; }
+  | DIVIDE { $$ = atMultiply; }
   ;
 print:
   PRINT args

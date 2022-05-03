@@ -23,15 +23,13 @@
 end            { return END; }
 "has fans in number of" {return FANS;}
 "has an IQ of" { return IQ; }
-"weights"      {return KG;}
 "broken bones" {return BONES;}
 
 "is thrown out" {return RETURN;}
 "hits" {return ASSIGN;}
 "bets on" {return BEGIN_CONDITION;}
 "takes the rest of the bets" {return BEGIN_ELSE;}
-"and" {return AND;} 
-"then supports" {return BEGIN_OR_CONDITIONS;}
+"and" {return AND;}
 "using" {return BEGIN_ARGS;}
 "giving the money to" {return BEGIN_RETURN_VAR;}
 "A new competition begins" {return BEGIN_TEST;}
