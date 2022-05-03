@@ -59,10 +59,10 @@
 %token IQ FANS BONES KG
 %token PRINT
 
-%token GTR STR_GTR
+%token TEST_GTR TEST_STR_GTR
 %token COLON HYPHEN COMMA
 
-%token BEGIN_TEST BEGIN_BRANCH
+%token BEGIN_TEST BEGIN_BRANCH BEGIN_ELSE
 %token BEGIN_PROPOSITION BEGIN_CONDITION 
 
 %token BEGIN_ARGS END_ARGS END_FUNC RETURN
@@ -193,18 +193,22 @@ test_propositions:
   | HYPHEN test_proposition
   ;
 test_proposition:
-  BEGIN_PROPOSITION INT COLON id operator id
+  BEGIN_PROPOSITION INT COLON id test_operator id
   ;
-operator:
-  GTR
-  | STR_GTR
+test_operator:
+  TEST_GTR
+  | TEST_STR_GTR
   ;
 test_branchs:
   test_branchs HYPHEN test_branch
+  | test_branchs HYPHEN test_else_branch
   | HYPHEN test_branch
   ;
 test_branch:
   id BEGIN_CONDITION test_values BEGIN_ARGS args BEGIN_RETURN_VAR ids
+  ;
+test_else_branch:
+  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR ids
   ;
 test_values:
   test_values COMMA ids
