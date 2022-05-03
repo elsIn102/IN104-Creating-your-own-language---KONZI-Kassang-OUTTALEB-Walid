@@ -29,7 +29,9 @@ end            { return END; }
 "is thrown out" {return RETURN;}
 "hits" {return ASSIGN;}
 "bets on" {return BEGIN_CONDITION;}
-"and" {return AND;}
+"takes the rest of the bets" {return BEGIN_ELSE;}
+"and" {return AND;} 
+"then supports" {return BEGIN_OR_CONDITIONS;}
 "using" {return BEGIN_ARGS;}
 "giving the money to" {return BEGIN_RETURN_VAR;}
 "A new competition begins" {return BEGIN_TEST;}
@@ -38,6 +40,8 @@ end            { return END; }
 ":" {return COLON;}
 "-" {return HYPHEN;}
 "," {return COMMA;}
+
+
 
 "challenges" {return TEST_GTR;}
 "fights" {return TEST_STR_GTR;}
@@ -49,8 +53,15 @@ end            { return END; }
 "end of the round" {return CONTINUE;}
 "the ring girl shows" {return PRINT;}
 
-[-]*[0-9]+ {yylval.ival= atoi(yytext); return INT; } 
+
+"joins" {return ADD;}
+"removes" {return MINUS;}
+"tears apart" {return DIVIDE;}
+"deals with" {return MULTIPLY;}
+
+[-]*[0-9]+ {yylval.ival= atoi(yytext); return INT;} 
 [-]*[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
+
 
 [a-zA-Z0-9]+   {
   yylval.sval = strdup(yytext);
