@@ -11,6 +11,7 @@
  
   void yyerror(const char *s);
 
+  /*
   new struct Argval
   {
     char* name;
@@ -20,36 +21,13 @@
     float fval;
     char* sval;
   }
-
-  new struct ArgList
-  {
-    struct Argval argval;
-    struct ArgList* next;
-  }
-
-  char* printArgs(struct ArgList al)
-  {
-    struct ArgList next = al.next;
-    cout << al.argval.type;
-
-    while (next != NULL)
-    {
-      cout << " - " << next.argval.type;
-      next = next.next;
-    }
-
-    cout << endl;
-
-  }
+  */
 %}
 
 %union {
   int ival;
-  unsigned int uival;
   float fval;
   char* sval;
-
-  struct ArgList argList;
 }
 
 // define the constant-string tokens:
@@ -77,11 +55,9 @@
 %token <ival> INT
 %token <fval> FLOAT
 %token <sval> STRING
-%token <uival> UINT
 %token VOID
 
 %type<sval> id
-%type<argList> args
 
 %%
 
@@ -122,16 +98,12 @@ varDef:
       cout << "New defined float: " << $1 << " of value: " << $3 << endl;
       free($1);
     }
-  |id KG UINT ENDLS {
-    cout << "New defined unsigned int: " << $1 << " of value: " << $3 << endl;
-    free($1);
-  }
   ;
 
 function_def:
   id BEGIN_ARGS args END_ARGS func_body
     {
-      cout << "function " << $1 << " defined with arguments : " << printArgs($3) << endl;
+      cout << "function " << $1 << " defined with arguments : " << endl;
       free($1);
       //free args
     }
@@ -148,15 +120,18 @@ func_body:
 
 
 args:
-  args {','|AND} id { $$.argval.type = 2; $$.argval.sval = $3; $$.next = $1; }
-  | args {','|AND} FLOAT { $$.argval.type = 1; $$.argval.fval = $3; $$.next = $1; }
-  | args {','|AND} INT { $$.argval.type = 0; $$.argval.ival = $3; $$.next = $1; }
-  | id { $$.argval.type = 2; $$.argval.sval = $1; }
-  | FLOAT { $$.argval.type = 1; $$.argval.fval = $1; }
-  | INT { $$.argval.type = 0; $$.argval.ival = $1; }
-  | VOID {}
+  args and id
+  | args and FLOAT
+  | args and INT
+  | id
+  | FLOAT
+  | INT
+  | VOID
   ;
-
+and:
+  AND
+  | ','
+  ;
 id:
   STRING { $$ = $1; }
   ;
