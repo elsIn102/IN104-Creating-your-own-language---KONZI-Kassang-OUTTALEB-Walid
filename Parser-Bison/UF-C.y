@@ -22,6 +22,15 @@
     char* sval;
   }
   */
+
+  struct AstNode
+  { 
+    enum AstType {atLet, atInvoke, atId, atInt, atAdd};
+
+    AstType type;
+    string s; int i;
+    int child, child2;
+  };
 %}
 
 %union {
@@ -34,8 +43,10 @@
 %token END ENDL
 
 %token ASSIGN AND
-%token IQ FANS BONES KG
+%token IQ FANS BONES
 %token PRINT
+
+%token ADD MINUS MULTIPLY DIVIDE
 
 %token TEST_GTR TEST_STR_GTR
 %token COLON HYPHEN COMMA
@@ -145,7 +156,8 @@ body_lines:
   | body_line
   ;
 body_line:
-  assignment
+  exp
+  | assignment
   | test
   | func_call
   | loop
@@ -153,6 +165,17 @@ body_line:
   | BREAK
   | CONTINUE
   | 
+  ;
+exp:
+  exp operator exp
+  | INT
+  | FLOAT
+  ;
+operator:
+  ADD
+  | MINUS
+  | MULTIPLY
+  | DIVIDE
   ;
 print:
   PRINT args
