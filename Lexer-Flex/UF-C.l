@@ -34,7 +34,7 @@ end            { return END; }
 "giving the money to" {return BEGIN_RETURN_VAR;}
 "A new competition begins" {return BEGIN_TEST;}
 "And the gambling den opens" {return BEGIN_BRANCH;} 
-"Match" {return BEGIN_PROPOSITION; }
+"Match" {return BEGIN_COMPARISON; }
 ":" {return COLON;}
 "-" {return HYPHEN;}
 "," {return COMMA;}
