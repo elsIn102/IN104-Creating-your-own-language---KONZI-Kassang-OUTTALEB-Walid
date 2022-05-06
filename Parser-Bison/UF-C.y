@@ -1,8 +1,8 @@
 %{
-  #include <cstdio>
-  #include <iostream>
-  using namespace std;
-  
+  #include <stdio.h>
+  #include <stdlib.h>
+
+  extern int line_num;
 
   // stuff from flex that bison needs to know about:
   extern int yylex();
@@ -13,64 +13,7 @@
 %}
 
 %code requires {
-  extern int line_num;
-
-  enum AstType 
-  {
-    atList, atLogicalOr, atLogicalAnd,
-    atIntDef, atFloatDef, atStringDef, atFuncDef,
-    atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseBranch,
-    atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
-    atId, atInt, atFloat, atVoid,
-    atAdd, atMinus, atMultiply, atDivide, atPrint
-  };
-
-  enum ComparatorType
-  {
-    gtr, str_gtr, neq, eq
-  };
-
-  struct AstNode
-  {
-    enum AstType type;
-    enum ComparatorType comparator;
-
-    char* s; int i; float f;
-
-    struct AstNode *child1;
-    struct AstNode *child2;
-    struct AstNode *child3;
-  };
-
-
-  void PointerNullError()
-  {
-    printf("Memory error on line %d\n", line_num);
-    //YYABORT; //Abort with memory exhaustion error
-    return;
-  }
-
-  struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, struct AstNode* _child2, struct AstNode* _child3)
-  {
-    struct AstNode* node = (struct AstNode*) malloc(sizeof (struct AstNode));
-      if (node==NULL)
-        PointerNullError();
-
-      node->type = _type;
-      node->child1 = _child1;
-      node->child2 = _child2;
-      node->child3 = _child3;
-
-      return node;
-  }
-
-  struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode* _var1, struct AstNode* _var2, struct AstNode* _whileBranch)
-  {
-    struct AstNode *conditionNode = CreateBasicNode(atCompare, _var1, _var2, NULL);
-    conditionNode->comparator = _comparator;
-
-    return CreateBasicNode(atWhileLoop, conditionNode, _whileBranch, NULL);
-  }
+  #include "Utils.h"
 }
 
 %union {
@@ -149,7 +92,7 @@ varDef:
     }
   | id BONES INT { // Char values
     // if ($3 < 255)
-    cout <<"New defined char:" <<endl;
+    printf("New defined char \n");
   }
   | id IQ FLOAT 
     {
@@ -353,12 +296,12 @@ and:
 
 %%
 
-int main(int, char**) {
+int main() {
   // open a file handle to a particular file:
   FILE *myfile = fopen("in.ufc", "r");
   // make sure it's valid:
   if (!myfile) {
-    cout << "I can't open a.ufc.file!" << endl;
+    printf("I can't open in.ufc file!\n");
     return -1;
   }
   // Set flex to read from it instead of defaulting to STDIN:
@@ -369,7 +312,7 @@ int main(int, char**) {
 }
 
 void yyerror(const char *s) {
-  cout << "EEK, parse error on line " << line_num << "!  Message: " << s << endl;
+  printf("EEK, parse error on line %d! Message: %s", line_num, s);
   // might as well halt now:
   exit(-1);
 }
