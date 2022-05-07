@@ -1,13 +1,15 @@
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
+#include <stdio.h>
+
 enum AstType 
 {
     atList, atLogicalOr, atLogicalAnd,
     atIntDef, atFloatDef, atStringDef, atFuncDef,
     atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
-    atId, atInt, atFloat, atVoid,
+    atId, atIntConstant, atFloatConstant, atStringConstant, atVoid,
     atAdd, atMinus, atMultiply, atDivide, atPrint
 };
 
@@ -33,5 +35,7 @@ struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, st
 struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode* _var1, struct AstNode* _var2, struct AstNode* _whileBranch);
 
 void FreeAST (struct AstNode* ast);
+
+void AstToCode (struct AstNode* ast, FILE* file);
 
 #endif

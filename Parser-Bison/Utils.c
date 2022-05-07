@@ -8,7 +8,6 @@ struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, st
     if (node==NULL)
     {
         printf("Memory error\n");
-        //YYABORT; //Abort with memory exhaustion error
         exit(2); //Closes all pointers, opened files, ... and exits the program with error 2
     }
 
@@ -41,4 +40,22 @@ void FreeAST (struct AstNode* ast)
         free(ast->s);
     
     free(ast);
+}
+
+void AstToCode (struct AstNode* ast, FILE* file)
+{
+    switch (ast->type)
+    {
+        case atList:
+            AstToCode(ast->child1, file);
+            AstToCode(ast->child2, file);
+
+        break;
+        case atLogicalAnd:
+            
+        break;
+        case atLogicalOr:
+            
+        break;
+    }
 }

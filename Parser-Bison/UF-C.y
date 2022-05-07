@@ -1,6 +1,11 @@
-%{
+%code requires {
+  #include "Utils.h"
+}
+
+%code {
   #include <stdio.h>
   #include <stdlib.h>
+
 
   extern int line_num;
 
@@ -9,12 +14,11 @@
   extern int yyparse();
   extern FILE *yyin;
  
-  void yyerror(const char *s);
-%}
-
-%code requires {
-  #include "Utils.h"
+  void yyerror(struct AstNode** errorAstPtr, const char *s);
 }
+
+//defines a pointer that will be required when calling the parser, allowing the caller to access the AST
+%parse-param {struct AstNode** ast}
 
 %union {
   int ival;
@@ -52,23 +56,22 @@
 // by convention), and associate each with a field of the union:
 %token <ival> INT
 %token <fval> FLOAT
-%token <sval> STRING
+%token <sval> STRING STRING_CONSTANT
 %token VOID
 
 %type<typeVal> operator
 %type<comparatorVal> comparator
-%type<nodeVal> UF-C definitions
+%type<nodeVal> definitions body_line body_lines
 %type<nodeVal> varDef varDefs function_def function_defs function_body
-%type<nodeVal> body_line body_lines
-%type<nodeVal> while_loop func_call print return assignment
-%type<nodeVal> id constant exp args nonVoidArg ids
+%type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
+%type<nodeVal> id idOrVoid constant exp args void nonConstArg nonConstArgs nonVoidArg nonVoidArgs
 %type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_if_branchs test_else_branch test_branchs
 
 %%
 
 // The first rule defined is the highest-level rule
 UF-C:
-  definitions body_lines footer { $$ = CreateBasicNode(atList, $1, $2, NULL); }
+  definitions body_lines footer { *ast = CreateBasicNode(atList, $1, $2, NULL); }
   ;
 
 
@@ -114,7 +117,7 @@ function_defs:
   |function_def { $$ = $1; }
   ;
 function_def:
-  id FUNC_DEF_BEGIN_ARGS args FUNC_DEF_END_ARGS function_body
+  id FUNC_DEF_BEGIN_ARGS nonConstArgs FUNC_DEF_END_ARGS function_body
     { $$ = CreateBasicNode(atFuncDef, $1, $3, $5); }
   ;
 function_body:
@@ -144,7 +147,7 @@ exp:
   ;
 assignment:
   id ASSIGN exp { $$ = CreateBasicNode(atAssignment, $1, $3, NULL); }
-  | ids ASSIGN func_call { $$ = CreateBasicNode(atAssignment, $1, $3, NULL); }
+  | id ASSIGN func_call { $$ = CreateBasicNode(atAssignment, $1, $3, NULL); }
   ;
 
 test:
@@ -176,7 +179,7 @@ test_if_branchs:
   | HYPHEN test_if_branch { $$ = $2; }
   ;
 test_if_branch:
-  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR ids
+  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
@@ -196,7 +199,7 @@ andComparisons:
   | comparisonId { $$ = $1; }
   ;
 test_else_branch:
-  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR ids
+  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);
@@ -210,13 +213,17 @@ func_call:
   id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
   ;
 while_loop:
-  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL LOOP_BEGIN_ACTION assignment { $$ = CreateWhileNode(neq, $3, 0, $6); }
-  | id WHILE id LOOP_GTR LOOP_BEGIN_ACTION assignment { $$ = CreateWhileNode(gtr, $1, $3, $6); }
-  | id WHILE id LOOP_NOT_EQ LOOP_BEGIN_ACTION assignment { $$ = CreateWhileNode(neq, $1, $3, $6); }
-  | id WHILE id LOOP_EQ LOOP_BEGIN_ACTION assignment { $$ = CreateWhileNode(eq, $1, $3, $6); }
+  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $3, 0, $6); }
+  | id WHILE id LOOP_GTR LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(gtr, $1, $3, $6); }
+  | id WHILE id LOOP_NOT_EQ LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $1, $3, $6); }
+  | id WHILE id LOOP_EQ LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(eq, $1, $3, $6); }
+  ;
+assignmentOrFuncCall:
+  assignment { $$ = $1; }
+  | func_call { $$ = $1; }
   ;
 print:
-  PRINT args { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  PRINT nonVoidArgs { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
   ;
 return:
   nonVoidArg RETURN { $$ = CreateBasicNode(atReturn, $1, NULL, NULL); }
@@ -232,12 +239,22 @@ endls:
   | ENDL
   ;
 
-
+nonConstArgs:
+  nonConstArgs and nonConstArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
+  | nonConstArg { $$ = $1; }
+  ;
+nonConstArg:
+  id { $$ = $1; }
+  | void { $$ = $1; }
+  ;
 args:
-  args and id { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | args and constant { $$ = CreateBasicNode(atList, $1, $3, NULL); }
+  nonVoidArgs { $$ = $1; }
+  | args and void { $$ = CreateBasicNode(atList, $1, $3, NULL); }
+  | void { $$ = $1; }
+  ;
+nonVoidArgs:
+  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
   | nonVoidArg { $$ = $1; }
-  | VOID { $$ = CreateBasicNode(atVoid, NULL, NULL, NULL); }
   ;
 nonVoidArg:
   id { $$ = $1; }
@@ -246,15 +263,22 @@ nonVoidArg:
 constant:
   INT
     {
-      struct AstNode *intNode = CreateBasicNode(atInt, NULL, NULL, NULL);
+      struct AstNode *intNode = CreateBasicNode(atIntConstant, NULL, NULL, NULL);
       intNode->i = $1;
 
       $$ = intNode;
     }
   | FLOAT
     {
-      struct AstNode *floatNode = CreateBasicNode(atFloat, NULL, NULL, NULL);
+      struct AstNode *floatNode = CreateBasicNode(atFloatConstant, NULL, NULL, NULL);
       floatNode->f = $1;
+
+      $$ = floatNode;
+    }
+  | STRING_CONSTANT
+    {
+      struct AstNode *floatNode = CreateBasicNode(atStringConstant, NULL, NULL, NULL);
+      floatNode->s = $1;
 
       $$ = floatNode;
     }
@@ -276,9 +300,9 @@ comparisonId:
       $$ = comparisonIdNode;
     }
   ;
-ids:
-  ids and id { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | id { $$ = $1; }
+idOrVoid:
+  id { $$ = $1; }
+  | void { $$ = $1; }
   ;
 id:
   STRING
@@ -288,6 +312,9 @@ id:
 
       $$ = idNode;
     }
+  ;
+void:
+  VOID { $$ = CreateBasicNode(atVoid, NULL, NULL, NULL); }
   ;
 and:
   AND
@@ -307,12 +334,31 @@ int main() {
   // Set flex to read from it instead of defaulting to STDIN:
   yyin = myfile;
 
+  struct AstNode* _ast;
+
   // Parse through the input:
-  yyparse();
+  int error = yyparse(&_ast);
+  if (error != 0)
+  {
+    printf("Error during parsing\n");
+    return 1;
+  }
+
+  FILE* outFile = fopen("out.ufc", "w");
+  if (outFile!=NULL)
+  {
+    AstToCode(_ast, outFile);
+    fclose(outFile);
+  }
+
+  FreeAST(_ast);
+
+  return 0;
 }
 
-void yyerror(const char *s) {
-  printf("EEK, parse error on line %d! Message: %s", line_num, s);
+void yyerror(struct AstNode** errorAstPtr, const char *s) {
+  printf("Parse error on line %d : %s\n", line_num, s);
   // might as well halt now:
+  FreeAST(*errorAstPtr);
   exit(-1);
 }

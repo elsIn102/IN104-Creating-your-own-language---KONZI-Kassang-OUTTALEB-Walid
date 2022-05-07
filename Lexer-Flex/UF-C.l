@@ -7,6 +7,7 @@
 %option noyywrap
 
 %x COMMENTS
+%x READING_STRING
 
 
 %%
@@ -14,6 +15,10 @@
 <COMMENTS>\*\/  { BEGIN(INITIAL); }  // end of a comment: go back to normal parsing.
 <COMMENTS>\n    { line_num++; }      // still have to increment line numbers inside of comments!
 <COMMENTS>.     ;                    // ignore every other character while we are in this state
+
+\" { BEGIN(READING_STRING); }
+<READING_STRING>\" { BEGIN(INITIAL); }
+<READING_STRING>.* { yylval.sval = strdup(yytext); return STRING_CONSTANT; }
 
 "is starting its training with" {return FUNC_DEF_BEGIN_ARGS;}
 "in order to increase its"  { return FUNC_DEF_END_ARGS;}
