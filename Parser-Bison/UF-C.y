@@ -59,6 +59,7 @@
 %token <sval> STRING STRING_CONSTANT
 %token VOID
 
+%type<sval> string
 %type<typeVal> operator
 %type<comparatorVal> comparator
 %type<nodeVal> definitions body_line body_lines
@@ -104,7 +105,7 @@ varDef:
 
       $$ = floatDefNode;
     }
-  | id ANNOUNCES STRING
+  | id ANNOUNCES string
     {
       struct AstNode *stringDefNode = CreateBasicNode(atStringDef, $1, NULL, NULL); 
       stringDefNode->s = $3;
@@ -275,13 +276,17 @@ constant:
 
       $$ = floatNode;
     }
-  | STRING_CONSTANT
+  | string
     {
       struct AstNode *floatNode = CreateBasicNode(atStringConstant, NULL, NULL, NULL);
       floatNode->s = $1;
 
       $$ = floatNode;
     }
+  ;
+string:
+  STRING { $$ = $1; }
+  | STRING_CONSTANT { $$ = $1; }
   ;
 
 operator:
