@@ -46,7 +46,7 @@ void AstToCode (struct AstNode* ast, FILE* file)
 {
     switch (ast->type)
     {
-        case atList:
+        case atStatementList:
             AstToCode(ast->child1, file);
             AstToCode(ast->child2, file);
 

@@ -68,22 +68,22 @@
 %type<nodeVal> definitions body_line body_lines
 %type<nodeVal> varDef function_def function_body
 %type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
-%type<nodeVal> id idOrVoid constant exp args void nonConstArg nonConstArgs nonVoidArg nonVoidArgs
+%type<nodeVal> id ids idOrVoid constant exp args void nonVoidArg nonVoidArgs
 %type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_if_branchs test_else_branch test_branchs
 
 %%
 
 // The first rule defined is the highest-level rule
 UF-C:
-  endls definitions body_lines footer { *ast = CreateBasicNode(atRoot, $1, $2, NULL); }
+  endls definitions body_lines footer { *ast = CreateBasicNode(atRoot, $2, $3, NULL); }
   ;
 
 
 definitions:
-  definitions varDef endls { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | definitions function_def endls { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | varDef endls { $$ = CreateBasicNode(atList, $1, $NULL, NULL); }
-  | function_def endls { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
+  definitions varDef endls { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
+  | definitions function_def endls { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
+  | varDef endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
+  | function_def endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
 varDef:
   id FANS INT
@@ -116,7 +116,7 @@ varDef:
     }
   ;
 function_def:
-  id FUNC_DEF_BEGIN_ARGS nonConstArgs FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
+  id FUNC_DEF_BEGIN_ARGS ids FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
     {
       struct AstNode *funcDefNode = CreateBasicNode(atFuncDef, $1, $3, $8); 
       funcDefNode->variableType = $5;
@@ -135,8 +135,8 @@ function_body:
 
 
 body_lines:
-  body_lines body_line { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | body_line { $$ = $1; }
+  body_lines body_line { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
+  | body_line { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
 body_line:
   exp endls { $$ = $1; }
@@ -163,8 +163,8 @@ test:
   BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH endls test_branchs { $$ = CreateBasicNode(atTest, $4, $7, NULL); }
   ;
 test_comparisons_declarations:
-  test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | HYPHEN test_comparison_declaration { $$ = $2; }
+  test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }
+  | HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
   ;
 test_comparison_declaration:
   BEGIN_COMPARISON INT COLON nonVoidArg comparator nonVoidArg endls
@@ -181,11 +181,11 @@ comparator:
   | TEST_STR_GTR { $$ = str_gtr; }
   ;
 test_branchs:
-  test_if_branchs HYPHEN test_else_branch { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | test_if_branchs { $$ = $1; }
+  test_if_branchs HYPHEN test_else_branch { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
+  | test_if_branchs { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
 test_if_branchs:
-  test_if_branchs HYPHEN test_if_branch { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | HYPHEN test_if_branch { $$ = $2; }
+  test_if_branchs HYPHEN test_if_branch { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
+  | HYPHEN test_if_branch { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
   ;
 test_if_branch:
   id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
@@ -248,22 +248,14 @@ endls:
   | ENDL
   ;
 
-nonConstArgs:
-  nonConstArgs and nonConstArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | nonConstArg { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
-  ;
-nonConstArg:
-  id { $$ = $1; }
-  | void { $$ = $1; }
-  ;
 args:
   nonVoidArgs { $$ = $1; }
-  | args and void { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | void { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
+  | args and void { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  | void { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArgs:
-  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | nonVoidArg { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
+  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  | nonVoidArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArg:
   id { $$ = $1; }
@@ -288,7 +280,7 @@ constant:
     }
   | string
     {
-      struct AstNode *stringNode = CreateBasicNode(atStringConstant, NULL, NULL, NULL);
+      struct AstNode *stringNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
       stringNode->variableType = characters;
       stringNode->s = $1;
 
@@ -319,6 +311,10 @@ comparisonId:
 idOrVoid:
   id { $$ = $1; }
   | void { $$ = $1; }
+  ;
+ids:
+  ids and id { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
+  | id { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 id:
   STRING

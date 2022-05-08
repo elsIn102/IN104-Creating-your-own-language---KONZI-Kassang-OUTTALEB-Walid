@@ -6,7 +6,7 @@
 enum AstType 
 {
     atRoot,
-    atList, atLogicalOr, atLogicalAnd,
+    atStatementList, atElemList, atLogicalOr, atLogicalAnd,
     atVariableDef, atFuncDef,
     atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
