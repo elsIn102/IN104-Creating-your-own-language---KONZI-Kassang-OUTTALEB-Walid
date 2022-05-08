@@ -41,21 +41,3 @@ void FreeAST (struct AstNode* ast)
     
     free(ast);
 }
-
-void AstToCode (struct AstNode* ast, FILE* file)
-{
-    switch (ast->type)
-    {
-        case atStatementList:
-            AstToCode(ast->child1, file);
-            AstToCode(ast->child2, file);
-
-        break;
-        case atLogicalAnd:
-            
-        break;
-        case atLogicalOr:
-            
-        break;
-    }
-}

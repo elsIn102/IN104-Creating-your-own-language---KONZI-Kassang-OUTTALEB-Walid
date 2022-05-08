@@ -2,6 +2,8 @@
 
 !!!!!! PENSER A FREE L'AST !!!!!
 
+Utiliser une table de hachage pour l'interpreter (variables et nom de fonctions)
+
 Liens utiles :
     -https://aquamentus.com/flex_bison.html
     -https://www.gnu.org/software/bison/manual/html_node/index.html#SEC_Contents

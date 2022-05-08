@@ -11,8 +11,6 @@
 
   // stuff from flex that bison needs to know about:
   extern int yylex();
-  extern int yyparse();
-  extern FILE *yyin;
  
   void yyerror(struct AstNode** errorAstPtr, const char *s);
 }
@@ -163,7 +161,7 @@ assignment:
   ;
 
 test:
-  BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH endls test_branchs { $$ = CreateBasicNode(atTest, $4, $7, NULL); }
+  BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH COLON endls test_branchs { $$ = CreateBasicNode(atTest, $4, $8, NULL); }
   ;
 test_comparisons_declarations:
   test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }
@@ -341,7 +339,7 @@ and:
   ;
 
 %%
-
+/*
 int main() {
   // open a file handle to a particular file:
   FILE *myfile = fopen("in.ufc", "r");
@@ -374,7 +372,7 @@ int main() {
 
   return 0;
 }
-
+*/
 void yyerror(struct AstNode** errorAstPtr, const char *s) {
   printf("Parse error on line %d : %s\n", line_num, s);
   // might as well halt now:

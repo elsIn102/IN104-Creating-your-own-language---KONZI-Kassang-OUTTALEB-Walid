@@ -43,6 +43,4 @@ struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode
 
 void FreeAST (struct AstNode* ast);
 
-void AstToCode (struct AstNode* ast, FILE* file);
-
 #endif
