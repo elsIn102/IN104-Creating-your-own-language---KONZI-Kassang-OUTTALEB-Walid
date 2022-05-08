@@ -1,5 +1,5 @@
 %code requires {
-  #include "Utils.h"
+  #include "../Utils/AST.h"
 }
 
 %code {
@@ -47,7 +47,7 @@
 %token BEGIN_COMPARISON BEGIN_CONDITION 
 
 %token BEGIN_ARGS FUNC_DEF_BEGIN_ARGS FUNC_DEF_END_ARGS END_FUNC RETURN
-%token TYPE_FLOAT TYPE_INT TYPE_STRING
+%token TYPE_FLOAT TYPE_INT TYPE_STRING TYPE_VOID
 %token BREAK CONTINUE
 
 %token BEGIN_RETURN_VAR
@@ -130,6 +130,7 @@ funcReturnType:
   TYPE_FLOAT { $$ = floating; }
   | TYPE_INT { $$ = integer; }
   | TYPE_STRING { $$ = characters; }
+  | TYPE_VOID { $$ = noType; }
   ;
 function_body:
   body_lines END_FUNC { $$ = $1; }

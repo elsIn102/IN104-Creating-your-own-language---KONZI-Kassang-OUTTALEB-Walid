@@ -21,7 +21,7 @@ enum ComparatorType
 
 enum VariableType
 {
-    integer, floating, characters
+    integer, floating, characters, noType
 };
 
 struct AstNode
