@@ -208,7 +208,7 @@ andComparisons:
   | comparisonId { $$ = $1; }
   ;
 test_else_branch:
-  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
+  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);
@@ -222,14 +222,18 @@ func_call:
   id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
   ;
 while_loop:
-  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $3, 0, $7); }
-  | id WHILE id LOOP_GTR endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(gtr, $1, $3, $7); }
-  | id WHILE id LOOP_NOT_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $1, $3, $7); }
-  | id WHILE id LOOP_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(eq, $1, $3, $7); }
+  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
+    { $$ = CreateWhileNode(neq, $3, 0, $7); }
+  | nonVoidArg WHILE nonVoidArg LOOP_GTR endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
+    { $$ = CreateWhileNode(gtr, $1, $3, $7); }
+  | nonVoidArg WHILE nonVoidArg LOOP_NOT_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
+    { $$ = CreateWhileNode(neq, $1, $3, $7); }
+  | nonVoidArg WHILE nonVoidArg LOOP_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
+    { $$ = CreateWhileNode(eq, $1, $3, $7); }
   ;
 assignmentOrFuncCall:
-  assignment endls { $$ = $1; }
-  | func_call endls { $$ = $1; }
+  assignment { $$ = $1; }
+  | func_call { $$ = $1; }
   ;
 print:
   PRINT nonVoidArgs { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
