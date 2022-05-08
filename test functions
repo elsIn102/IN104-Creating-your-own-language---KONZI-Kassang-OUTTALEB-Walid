@@ -21,23 +21,32 @@ end
 
 /////////////////////// WHILE LOOP
 
-F is starting its training  with x and y to increase its IQ
-    z has an IQ of 0
+/*Definitions*/
+
+z has an IQ of 0.0
+
+a has this number of fans : 256
+b has this number of fans : 15
+c has this number of fans : 0
+
+F is starting its training with x and y to increase its IQ:
     x joins y
     x hits z
     z is thrown out
 training is over
 
-a challenges b
 
-a has this number of fans:256
-b has this number of fans:15
-c has this number of fans:0
+instructions is starting its training with x and y to increase its effectiveness:
+y removes 1
+training is over
 
-a beats down b
-until b gives up
+/*Main*/
 
-_b removes 1
+a beats down b until they give up
+meanwhile instructions enrolls a and b
 
-_F hits c with a and b
+end
 
+F hits c with a and b
+the ring girl shows c
+the ring girl shows d 
