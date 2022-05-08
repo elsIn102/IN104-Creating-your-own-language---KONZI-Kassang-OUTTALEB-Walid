@@ -1,23 +1,19 @@
-a has an IQ of 25.6
-
-b has an IQ of 25.5
-
-c has an IQ of 256
-
-the ring girl shows c
-
-c joins a;
-
-the ring girl shows c
-the ring girl shows a 
-
-a challenges b
-
 \/\* comment\*\/
 
-F is starting its training  with a and b to increase its IQ
-
+F is starting its training  with x and y to increase its IQ
+    z has an IQ of 0
+    x joins y
+    x hits z
+    z is thrown out
 training is over
+
+a has an IQ of 25.6
+b has an IQ of 25.5
+d has an IQ of 51.1
+
+F hits c with a and b
+the ring girl shows c
+the ring girl shows d  
 
 end
 
