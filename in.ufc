@@ -1,7 +1,8 @@
-\/\* comment\*\/
+/*Definitions*/
 
-F is starting its training  with x and y to increase its IQ
-    z has an IQ of 0
+z has an IQ of 0.0
+
+F is starting its training with x and y to increase its IQ :
     x joins y
     x hits z
     z is thrown out
@@ -11,9 +12,10 @@ a has an IQ of 25.6
 b has an IQ of 25.5
 d has an IQ of 51.1
 
+/*Main*/
+
 F hits c with a and b
 the ring girl shows c
-the ring girl shows d  
+the ring girl shows d 
 
 end
-

@@ -21,14 +21,14 @@
 <READING_STRING>.* { yylval.sval = strdup(yytext); return STRING_CONSTANT; }
 
 "is starting its training with" {return FUNC_DEF_BEGIN_ARGS;}
-"in order to increase its"  { return FUNC_DEF_END_ARGS;}
+"to increase its"  { return FUNC_DEF_END_ARGS;}
 
 "training is over" {return END_FUNC;}
 [ \t] ;
 end            { return END; }
 
 
-"has this number of fans :" {return FANS;} //declaration of variables
+"has this number of fans :" {return FANS;} //declaration of variables: int
 "has an IQ of" { return IQ; }  //float
 "broken bones" {return BONES;} //char
 "announces" {return ANNOUNCES;}  //declare a string
@@ -75,8 +75,8 @@ end            { return END; }
 "tears apart" {return DIVIDE;}
 "deals with" {return MULTIPLY;}
 
-[-]*[0-9]+ {yylval.ival= atoi(yytext); return INT;} 
-[-]*[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
+[-]?[0-9]+ {yylval.ival= atoi(yytext); return INT;} 
+[-]?[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
 
 
 [a-zA-Z0-9]+   {
