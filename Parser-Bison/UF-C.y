@@ -163,7 +163,7 @@ assignment:
   ;
 
 test:
-  BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH endls test_branchs { $$ = CreateBasicNode(atTest, $4, $7, NULL); }
+  BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH COLON endls test_branchs { $$ = CreateBasicNode(atTest, $4, $8, NULL); }
   ;
 test_comparisons_declarations:
   test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }

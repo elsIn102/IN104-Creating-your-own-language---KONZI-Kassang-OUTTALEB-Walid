@@ -46,7 +46,7 @@ end            { return END; }
 "using" {return BEGIN_ARGS;}
 "with" {return BEGIN_ARGS;}
 "enrolls" {return BEGIN_ARGS;}
-"giving the money to" {return BEGIN_RETURN_VAR;}
+"and gives the money to" {return BEGIN_RETURN_VAR;}
 "A new competition begins" {return BEGIN_TEST;}
 "And the gambling den opens" {return BEGIN_BRANCH;} 
 "Match" {return BEGIN_COMPARISON; }
