@@ -28,6 +28,7 @@
   struct AstNode *nodeVal;
   enum AstType typeVal;
   enum ComparatorType comparatorVal;
+  enum VariableType varTypeVal;
 }
 
 // define the constant-string tokens:
@@ -46,6 +47,7 @@
 %token BEGIN_COMPARISON BEGIN_CONDITION 
 
 %token BEGIN_ARGS FUNC_DEF_BEGIN_ARGS FUNC_DEF_END_ARGS END_FUNC RETURN
+%token TYPE_FLOAT TYPE_INT TYPE_STRING
 %token BREAK CONTINUE
 
 %token BEGIN_RETURN_VAR
@@ -61,9 +63,10 @@
 
 %type<sval> string
 %type<typeVal> operator
+%type<varTypeVal> funcReturnType
 %type<comparatorVal> comparator
 %type<nodeVal> definitions body_line body_lines
-%type<nodeVal> varDef varDefs function_def function_defs function_body
+%type<nodeVal> varDef function_def function_body
 %type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
 %type<nodeVal> id idOrVoid constant exp args void nonConstArg nonConstArgs nonVoidArg nonVoidArgs
 %type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_if_branchs test_else_branch test_branchs
@@ -72,24 +75,21 @@
 
 // The first rule defined is the highest-level rule
 UF-C:
-  definitions body_lines footer { *ast = CreateBasicNode(atList, $1, $2, NULL); }
+  endls definitions body_lines footer { *ast = CreateBasicNode(atRoot, $1, $2, NULL); }
   ;
 
 
 definitions:
-  definitions varDefs { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | definitions function_defs { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | varDefs { $$ = $1; }
-  | function_defs { $$ = $1; }
-  ;
-varDefs:
-  varDefs varDef { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  | varDef { $$ = $1; }
+  definitions varDef endls { $$ = CreateBasicNode(atList, $1, $2, NULL); }
+  | definitions function_def endls { $$ = CreateBasicNode(atList, $1, $2, NULL); }
+  | varDef endls { $$ = CreateBasicNode(atList, $1, $NULL, NULL); }
+  | function_def endls { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
   ;
 varDef:
-  id FANS INT 
+  id FANS INT
     {
-      struct AstNode *intDefNode = CreateBasicNode(atIntDef, $1, NULL, NULL); 
+      struct AstNode *intDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
+      intDefNode->variableType = integer;
       intDefNode->i = $3;
 
       $$ = intDefNode;
@@ -98,28 +98,36 @@ varDef:
     // if ($3 < 255)
     printf("New defined char \n");
   }
-  | id IQ FLOAT 
+  | id IQ FLOAT
     {
-      struct AstNode *floatDefNode = CreateBasicNode(atFloatDef, $1, NULL, NULL); 
+      struct AstNode *floatDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
+      floatDefNode->variableType = floating;
       floatDefNode->f = $3;
 
       $$ = floatDefNode;
     }
   | id ANNOUNCES string
     {
-      struct AstNode *stringDefNode = CreateBasicNode(atStringDef, $1, NULL, NULL); 
+      struct AstNode *stringDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
+      stringDefNode->variableType = characters;
       stringDefNode->s = $3;
 
       $$ = stringDefNode;
     }
   ;
-function_defs:
-  function_defs function_def { $$ = CreateBasicNode(atList, $1, $2, NULL); }
-  |function_def { $$ = $1; }
-  ;
 function_def:
-  id FUNC_DEF_BEGIN_ARGS nonConstArgs FUNC_DEF_END_ARGS function_body
-    { $$ = CreateBasicNode(atFuncDef, $1, $3, $5); }
+  id FUNC_DEF_BEGIN_ARGS nonConstArgs FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
+    {
+      struct AstNode *funcDefNode = CreateBasicNode(atFuncDef, $1, $3, $8); 
+      funcDefNode->variableType = $5;
+
+      $$ = funcDefNode;
+    }
+  ;
+funcReturnType:
+  TYPE_FLOAT { $$ = floating; }
+  | TYPE_INT { $$ = integer; }
+  | TYPE_STRING { $$ = characters; }
   ;
 function_body:
   body_lines END_FUNC { $$ = $1; }
@@ -131,15 +139,15 @@ body_lines:
   | body_line { $$ = $1; }
   ;
 body_line:
-  exp { $$ = $1; }
-  | assignment { $$ = $1; }
-  | test { $$ = $1; }
-  | func_call { $$ = $1; }
-  | while_loop { $$ = $1; }
-  | print { $$ = $1; }
-  | BREAK { $$ = CreateBasicNode(atBreak, NULL, NULL, NULL); }
-  | CONTINUE { $$ = CreateBasicNode(atContinue, NULL, NULL, NULL); }
-  | return { $$ = $1; }
+  exp endls { $$ = $1; }
+  | assignment endls { $$ = $1; }
+  | test endls { $$ = $1; }
+  | func_call endls { $$ = $1; }
+  | while_loop endls { $$ = $1; }
+  | print endls { $$ = $1; }
+  | BREAK endls { $$ = CreateBasicNode(atBreak, NULL, NULL, NULL); }
+  | CONTINUE endls { $$ = CreateBasicNode(atContinue, NULL, NULL, NULL); }
+  | return endls { $$ = $1; }
   ;
 exp:
   exp operator exp { $$ = CreateBasicNode($2, $1, $3, NULL); }
@@ -152,14 +160,14 @@ assignment:
   ;
 
 test:
-  BEGIN_TEST test_comparisons_declarations BEGIN_BRANCH test_branchs { $$ = CreateBasicNode(atTest, $2, $4, NULL); }
+  BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH endls test_branchs { $$ = CreateBasicNode(atTest, $4, $7, NULL); }
   ;
 test_comparisons_declarations:
   test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atList, $1, $3, NULL); }
   | HYPHEN test_comparison_declaration { $$ = $2; }
   ;
 test_comparison_declaration:
-  BEGIN_COMPARISON INT COLON nonVoidArg comparator nonVoidArg
+  BEGIN_COMPARISON INT COLON nonVoidArg comparator nonVoidArg endls
     {
       struct AstNode *testComparisonNode = CreateBasicNode(atComparisonDeclaration, $4, $6, NULL);
       testComparisonNode->i = $2; //Numéro du match et donc id de la comparaison
@@ -180,7 +188,7 @@ test_if_branchs:
   | HYPHEN test_if_branch { $$ = $2; }
   ;
 test_if_branch:
-  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
+  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
@@ -200,7 +208,7 @@ andComparisons:
   | comparisonId { $$ = $1; }
   ;
 test_else_branch:
-  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
+  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);
@@ -214,14 +222,14 @@ func_call:
   id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
   ;
 while_loop:
-  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $3, 0, $6); }
-  | id WHILE id LOOP_GTR LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(gtr, $1, $3, $6); }
-  | id WHILE id LOOP_NOT_EQ LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $1, $3, $6); }
-  | id WHILE id LOOP_EQ LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(eq, $1, $3, $6); }
+  nonVoidArg WHILE nonVoidArg LOOP_NOTNULL endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $3, 0, $7); }
+  | id WHILE id LOOP_GTR endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(gtr, $1, $3, $7); }
+  | id WHILE id LOOP_NOT_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(neq, $1, $3, $7); }
+  | id WHILE id LOOP_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall { $$ = CreateWhileNode(eq, $1, $3, $7); }
   ;
 assignmentOrFuncCall:
-  assignment { $$ = $1; }
-  | func_call { $$ = $1; }
+  assignment endls { $$ = $1; }
+  | func_call endls { $$ = $1; }
   ;
 print:
   PRINT nonVoidArgs { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
@@ -242,7 +250,7 @@ endls:
 
 nonConstArgs:
   nonConstArgs and nonConstArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | nonConstArg { $$ = $1; }
+  | nonConstArg { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
   ;
 nonConstArg:
   id { $$ = $1; }
@@ -251,11 +259,11 @@ nonConstArg:
 args:
   nonVoidArgs { $$ = $1; }
   | args and void { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | void { $$ = $1; }
+  | void { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
   ;
 nonVoidArgs:
   nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atList, $1, $3, NULL); }
-  | nonVoidArg { $$ = $1; }
+  | nonVoidArg { $$ = CreateBasicNode(atList, $1, NULL, NULL); }
   ;
 nonVoidArg:
   id { $$ = $1; }
@@ -264,24 +272,27 @@ nonVoidArg:
 constant:
   INT
     {
-      struct AstNode *intNode = CreateBasicNode(atIntConstant, NULL, NULL, NULL);
+      struct AstNode *intNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
+      intNode->variableType = integer;
       intNode->i = $1;
 
       $$ = intNode;
     }
   | FLOAT
     {
-      struct AstNode *floatNode = CreateBasicNode(atFloatConstant, NULL, NULL, NULL);
+      struct AstNode *floatNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
+      floatNode->variableType = floating;
       floatNode->f = $1;
 
       $$ = floatNode;
     }
   | string
     {
-      struct AstNode *floatNode = CreateBasicNode(atStringConstant, NULL, NULL, NULL);
-      floatNode->s = $1;
+      struct AstNode *stringNode = CreateBasicNode(atStringConstant, NULL, NULL, NULL);
+      stringNode->variableType = characters;
+      stringNode->s = $1;
 
-      $$ = floatNode;
+      $$ = stringNode;
     }
   ;
 string:

@@ -5,11 +5,12 @@
 
 enum AstType 
 {
+    atRoot,
     atList, atLogicalOr, atLogicalAnd,
-    atIntDef, atFloatDef, atStringDef, atFuncDef,
+    atVariableDef, atFuncDef,
     atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
-    atId, atIntConstant, atFloatConstant, atStringConstant, atVoid,
+    atId, atConstant, atVoid,
     atAdd, atMinus, atMultiply, atDivide, atPrint
 };
 
@@ -18,10 +19,16 @@ enum ComparatorType
     gtr, str_gtr, neq, eq
 };
 
+enum VariableType
+{
+    integer, floating, characters
+};
+
 struct AstNode
 {
     enum AstType type;
     enum ComparatorType comparator;
+    enum VariableType variableType;
 
     char* s; int i; float f;
 
