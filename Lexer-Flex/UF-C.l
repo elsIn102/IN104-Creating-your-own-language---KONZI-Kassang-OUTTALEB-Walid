@@ -36,6 +36,7 @@ end            { return END; }
 "IQ" {return TYPE_FLOAT;}
 "fans" {return TYPE_INT;}
 "size" {return TYPE_STRING;}
+"effectiveness" {return TYPE_VOID;}
 
 "is thrown out" {return RETURN;}
 "hits" {return ASSIGN;}
