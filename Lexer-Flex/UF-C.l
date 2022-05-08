@@ -26,10 +26,16 @@
 "training is over" {return END_FUNC;}
 [ \t] ;
 end            { return END; }
-"has this number of fans :" {return FANS;}
-"has an IQ of" { return IQ; }
-"broken bones" {return BONES;}
-"announces" {return ANNOUNCES;}
+
+
+"has this number of fans :" {return FANS;} //declaration of variables
+"has an IQ of" { return IQ; }  //float
+"broken bones" {return BONES;} //char
+"announces" {return ANNOUNCES;}  //declare a string
+
+"IQ" {return TYPE_FLOAT;}
+"fans" {return TYPE_INT;}
+"size" {return TYPE_STRING;}
 
 "is thrown out" {return RETURN;}
 "hits" {return ASSIGN;}

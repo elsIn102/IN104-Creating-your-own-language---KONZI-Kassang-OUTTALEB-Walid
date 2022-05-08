@@ -1,14 +1,23 @@
-John has an IQ of 3.56
+a has an IQ of 25.6
 
-type foo
-type bar
-type bas
+b has an IQ of 25.5
 
+c has an IQ of 256
 
-0 0 10 5 foo
-20 10 30 20 foo
-7 8 12 13 bas
-78 124 100 256 bar
+the ring girl shows c
+
+c joins a;
+
+the ring girl shows c
+the ring girl shows a 
+
+a challenges b
+
+\/\* comment\*\/
+
+F is starting its training  with a and b to increase its IQ
+
+training is over
 
 end
 
