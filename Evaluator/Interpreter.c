@@ -56,7 +56,7 @@ int main() {
         return error;
     }
 
-    EvaluateAST(ast);
+    //EvaluateAST(ast); 
 
     FreeAST(ast);
     fclose(myfile);
