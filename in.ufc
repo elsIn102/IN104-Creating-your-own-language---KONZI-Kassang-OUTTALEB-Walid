@@ -1,29 +1,8 @@
 /*Definitions*/
 
-z has an IQ of 0.0
 
-a has this number of fans : 256
-b has this number of fans : 15
-c has this number of fans : 0
-
-F is starting its training with x and y to increase its IQ:
-    x joins y
-    x hits z
-    z is thrown out
-training is over
+the ring girl shows ABC
 
 
-instructions is starting its training with x and y to increase its effectiveness:
-y removes 1
-training is over
-
-/*Main*/
-
-A new competition begins :
-    -Match 1: a challenges b
-    -Match 2: b challenges c
-And the gambling den opens :
-    -F bets on 1 and 2 using a and b and gives the money to c
-    -F takes the rest of the bets with a and b and gives the money to c
 
 end
