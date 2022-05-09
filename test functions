@@ -1,3 +1,5 @@
+/*addition of numbers: floats*/
+
 /* comment*/
 
 z has an IQ of 0.0
@@ -87,3 +89,25 @@ And the gambling den opens :
     -F takes the rest of the bets with a and b and gives the money to c
 
 end
+
+
+/*void functions*/
+
+a has this number of fans : 50
+b has this number of fans : 25
+z has this number of fans : 0
+
+instructions is starting its training with x and y to increase its effectiveness:
+x removes 1
+y joins 1
+training is over
+
+a beats down b until they give up
+meanwhile instructions enrolls b and z
+
+the ring girl shows z
+the ring girl shows b
+
+
+end
+
