@@ -1,3 +1,26 @@
 
-the ring girl shows "Ardé"
+nums has this number of fans : 50
+a has this number of fans : 0
+b has this number of fans : 1
+d has this number of fans : 0
+
+/*instructions is starting its training with x, y, z and num to increase its effectiveness:
+x joins z
+y joins z
+y hits x
+z hits y
+num removes 1
+training is over*/
+
+instructions is starting its training with x, y and num to increase its effectiveness:
+1 joins x
+num removes 1
+the ring girl shows num
+the ring girl shows x
+
+training is over
+
+nums beats down 0 until they fight back
+meanwhile instructions enrolls a and nums
+
 end

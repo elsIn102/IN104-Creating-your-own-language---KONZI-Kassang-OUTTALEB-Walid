@@ -177,7 +177,7 @@ test_comparison_declaration:
       $$ = testComparisonNode;
     }
   ;
-comparator:
+comparator:AND
   TEST_GTR { $$ = gtr; }
   | TEST_STR_GTR { $$ = str_gtr; }
   ;
@@ -331,7 +331,7 @@ void:
   ;
 and:
   AND
-  | ','
+  | COMMA
   ;
 
 %%
