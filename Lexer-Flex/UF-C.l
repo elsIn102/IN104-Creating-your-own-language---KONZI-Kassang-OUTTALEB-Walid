@@ -70,7 +70,11 @@ end            { return END; }
 
 "the match is interrupted" {return BREAK;}
 "end of the round" {return CONTINUE;}
+
 "the ring girl shows" {return PRINT;}
+"the fans of" {return PRINT_INT;}
+"the wits of" {return PRINT_FLOAT;}
+"the flow of" {return PRINT_STRING;}
 
 
 "joins" {return ADD;}

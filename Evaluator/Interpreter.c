@@ -64,12 +64,39 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                     break;
             }
             break;
+        case atVoid:
+            
+            break;
+        case atAdd:
+            fprintf(inMainFile, "(");
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            fprintf(inMainFile, " + ");
+            TranslateAST(ast->child2, outMainFile, inMainFile);
+            fprintf(inMainFile, ");");
+        case atMinus:
+            fprintf(inMainFile, "(");
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            fprintf(inMainFile, " - ");
+            TranslateAST(ast->child2, outMainFile, inMainFile);
+            fprintf(inMainFile, ");");
+        case atMultiply:
+            fprintf(inMainFile, "(");
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            fprintf(inMainFile, " * ");
+            TranslateAST(ast->child2, outMainFile, inMainFile);
+            fprintf(inMainFile, ");");
+        case atDivide:
+            fprintf(inMainFile, "(");
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            fprintf(inMainFile, " / ");
+            TranslateAST(ast->child2, outMainFile, inMainFile);
+            fprintf(inMainFile, ");");
+            break;
         case atPrint:
             switch (ast->child1->type)
             {
                 case atId:
-                    //Need to know the variable type of the variable to print (add a new keyword ?)
-                    switch(ast->child1->variableType)
+                    switch(ast->variableType)
                     {
                         case integer:
                             fprintf(inMainFile, "printf(\"%%d\n\",");
@@ -138,7 +165,7 @@ int main(int argc, char* argv[])
     if (!myfile) 
     {
         printf("Cannot open in.ufc file\n");
-        return -1;
+        return 1;
     }
 
     // Set flex to read from it instead of defaulting to STDIN:
@@ -166,7 +193,7 @@ int main(int argc, char* argv[])
     {
         printf("Can't create the temporary outMain file\n");
         FreeAST(ast);
-        return -1;
+        return 1;
     }
 
     FILE* inMainFile = fopen("inMainTemp", "w");
@@ -175,7 +202,7 @@ int main(int argc, char* argv[])
         printf("Can't create the temporary inMain file\n");
         fclose(outMainFile);
         FreeAST(ast);
-        return -1;
+        return 1;
     }
 
     TranslateAST(ast, outMainFile, inMainFile);
@@ -193,7 +220,7 @@ int main(int argc, char* argv[])
         printf("Can't create the output file name\n");
         fclose(outMainFile);
         fclose(inMainFile);
-        return -1;
+        return 1;
     }
 
     strcpy(outFileName, fileName);
@@ -205,7 +232,7 @@ int main(int argc, char* argv[])
         free(outFileName);
         fclose(outMainFile);
         fclose(inMainFile);
-        return -1;
+        return 1;
     }
     *extension = '\0';
 
@@ -221,7 +248,7 @@ int main(int argc, char* argv[])
         free(outFileName);
         fclose(outMainFile);
         fclose(inMainFile);
-        return -1;
+        return 1;
     }
     free(outFileName);
 

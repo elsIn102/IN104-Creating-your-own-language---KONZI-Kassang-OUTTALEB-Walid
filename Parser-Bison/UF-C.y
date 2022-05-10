@@ -35,7 +35,7 @@
 
 %token ASSIGN AND
 %token IQ FANS BONES ANNOUNCES
-%token PRINT
+%token PRINT PRINT_INT PRINT_FLOAT PRINT_STRING
 
 %token ADD MINUS MULTIPLY DIVIDE
 
@@ -243,7 +243,28 @@ assignmentOrFuncCall:
   | func_call { $$ = $1; }
   ;
 print:
-  PRINT nonVoidArg { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  PRINT constant { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  | PRINT PRINT_INT id 
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = integer;
+
+      $$ = printNode;
+    }
+  | PRINT PRINT_FLOAT id 
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = floating;
+
+      $$ = printNode;
+    }
+  | PRINT PRINT_STRING id 
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = characters;
+
+      $$ = printNode;
+    }
   ;
 return:
   nonVoidArg RETURN { $$ = CreateBasicNode(atReturn, $1, NULL, NULL); }
@@ -378,6 +399,7 @@ int main() {
 void yyerror(struct AstNode** errorAstPtr, const char *s) {
   printf("Parse error on line %d : %s\n", line_num, s);
   // might as well halt now:
-  FreeAST(*errorAstPtr);
-  exit(-1);
+  if (errorAstPtr!=NULL)
+    FreeAST(*errorAstPtr);
+  exit(1);
 }
