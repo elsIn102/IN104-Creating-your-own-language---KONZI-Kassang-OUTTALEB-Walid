@@ -59,7 +59,6 @@
 %token <sval> STRING STRING_CONSTANT
 %token VOID
 
-%type<sval> string
 %type<typeVal> operator
 %type<varTypeVal> funcReturnType
 %type<comparatorVal> comparator
@@ -80,8 +79,8 @@ UF-C:
 
 
 definitions:
-  definitions varDef endls { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
-  | definitions function_def endls { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
+  definitions varDef endls { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
+  | definitions function_def endls { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
   | varDef endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   | function_def endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
@@ -106,7 +105,7 @@ varDef:
 
       $$ = floatDefNode;
     }
-  | id ANNOUNCES string
+  | id ANNOUNCES STRING_CONSTANT
     {
       struct AstNode *stringDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
       stringDefNode->variableType = characters;
@@ -136,7 +135,7 @@ function_body:
 
 
 body_lines:
-  body_lines body_line { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
+  body_lines body_line { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
   | body_line { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
 body_line:
@@ -164,7 +163,7 @@ test:
   BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH COLON endls test_branchs { $$ = CreateBasicNode(atTest, $4, $8, NULL); }
   ;
 test_comparisons_declarations:
-  test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }
+  test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
   | HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
   ;
 test_comparison_declaration:
@@ -255,11 +254,11 @@ endls:
 
 args:
   nonVoidArgs { $$ = $1; }
-  | args and void { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  | args and void { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
   | void { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArgs:
-  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
   | nonVoidArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArg:
@@ -283,7 +282,7 @@ constant:
 
       $$ = floatNode;
     }
-  | string
+  | STRING_CONSTANT
     {
       struct AstNode *stringNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
       stringNode->variableType = characters;
@@ -291,10 +290,6 @@ constant:
 
       $$ = stringNode;
     }
-  ;
-string:
-  STRING { $$ = $1; }
-  | STRING_CONSTANT { $$ = $1; }
   ;
 
 operator:
