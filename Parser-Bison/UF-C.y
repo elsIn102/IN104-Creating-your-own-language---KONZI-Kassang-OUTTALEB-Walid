@@ -74,6 +74,7 @@
 UF-C:
   endls definitions body_lines footer { *ast = CreateBasicNode(atRoot, $2, $3, NULL); }
   | endls definitions footer { *ast = CreateBasicNode(atRoot, $2, NULL, NULL); }
+  | endls body_lines footer { *ast = CreateBasicNode(atRoot, $2, NULL, NULL); }
   | endls footer { *ast = CreateBasicNode(atRoot, NULL, NULL, NULL); }
   ;
 
