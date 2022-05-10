@@ -289,7 +289,6 @@ constant:
     }
   | STRING_CONSTANT
     {
-      printf("%s\n", $1);
       struct AstNode *stringNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
       stringNode->variableType = characters;
       stringNode->s = $1;

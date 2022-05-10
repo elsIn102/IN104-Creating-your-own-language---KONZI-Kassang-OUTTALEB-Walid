@@ -4,3 +4,4 @@ Parser-Bison/UF-C.output
 Lexer-Flex/lex.UF-C.c
 UF-C
 .vscode
+in.c

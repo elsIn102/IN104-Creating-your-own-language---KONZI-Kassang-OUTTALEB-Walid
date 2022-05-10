@@ -1,32 +1,68 @@
 #include "../Utils/AST.h"
 #include "../Parser-Bison/UF-C.tab.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 extern int yyparse();
 extern FILE *yyin;
 
-void TranslateAST (struct AstNode* ast)
+void InterpreterError(char* error_msg)
+{
+    printf("Error from the interpreter : %s\n", error_msg);
+}
+
+void TranslateAST (struct AstNode* ast, FILE* outFile)
 {
     switch (ast->type)
     {
         case atRoot:
-            TranslateAST(ast->child1);
-            TranslateAST(ast->child2);
-        break;
-        case atStatementList:
-            TranslateAST(ast->child1);
-            TranslateAST(ast->child2);
-        break;
-        case atVariableDef:
+            TranslateAST(ast->child1, outFile);
+            TranslateAST(ast->child2, outFile);
 
-        break;
-        case atLogicalAnd:
-            
-        break;
+            break;
+        case atStatementList:
+            TranslateAST(ast->child1, outFile);
+            TranslateAST(ast->child2, outFile);
+
+            break;
+        case atElemList:
+            TranslateAST(ast->child1, outFile);
+            TranslateAST(ast->child2, outFile);
+
+            break;
         case atLogicalOr:
-            
+
+            break;
+        case atLogicalAnd:
+
+            break;
+        case atVariableDef:
+            switch (ast->variableType)
+            {
+                case integer:
+                    
+                    break;
+
+                case floating:
+
+                    break;
+
+                case characters:
+
+                    break;
+
+                case noType:
+
+                    break;
+
+                default:
+                    InterpreterError("Varitable type not valid");
+                    break;
+            }
         break;
         default:
-            printf("Error during evaluation : Node not valid\n");
+            InterpreterError("Node not valid");
             return;
         break;
     }
@@ -69,11 +105,48 @@ int main(int argc, char* argv[])
         fclose(myfile);
         return error;
     }
+    //We don't need the input file anymore
+    fclose(myfile);
 
-    //EvaluateAST(ast); 
+    //Defining the name of the output file as inputFileName (removing the extension .ufc)
+    char* outFileName;
+    if ((outFileName = malloc (strlen(fileName) + 1)) == NULL)
+    {
+        printf("Can't create the output file name\n");
+        FreeAST(ast);
+        return -1;
+    }
+
+    strcpy(outFileName, fileName);
+
+    char* extension = strrchr(outFileName, '.');
+    if (extension == NULL)
+    {
+        printf("Can't find any '.' in the name of the input file\n");
+        free(outFileName);
+        FreeAST(ast);
+        return -1;
+    }
+    *extension = '\0';
+
+    //Now we can concatenate because ".ufc" is longer than ".c" so no memory pb
+    strcat(outFileName, ".c");
+
+    //From here on, outputFileName is the name of the file with the .c extension
+
+    FILE* outFile = fopen(outFileName, "w");
+    if (outFile==NULL)
+    {
+        printf("Can't create the output file\n");
+        free(outFileName);
+        FreeAST(ast);
+        return -1;
+    }
+
+    //TranslateAST(ast, outFile);
 
     FreeAST(ast);
-    fclose(myfile);
+    free(outFileName);
 
     return 0;
 }
