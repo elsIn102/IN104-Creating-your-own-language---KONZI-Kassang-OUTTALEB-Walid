@@ -62,6 +62,7 @@
 %type<typeVal> operator
 %type<varTypeVal> funcReturnType
 %type<comparatorVal> comparator
+%type<nodeVal> start
 %type<nodeVal> definitions body_line body_lines
 %type<nodeVal> varDef function_def function_body
 %type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
@@ -72,12 +73,15 @@
 
 // The first rule defined is the highest-level rule
 UF-C:
-  endls definitions body_lines footer { *ast = CreateBasicNode(atRoot, $2, $3, NULL); }
-  | endls definitions footer { *ast = CreateBasicNode(atRoot, $2, NULL, NULL); }
-  | endls body_lines footer { *ast = CreateBasicNode(atRoot, $2, NULL, NULL); }
-  | endls footer { *ast = CreateBasicNode(atRoot, NULL, NULL, NULL); }
+  endls start { *ast = $2; }
+  | start { *ast = $1; }
   ;
-
+start:
+    definitions body_lines footer { $$ = CreateBasicNode(atRoot, $1, $2, NULL); }
+  | definitions footer { $$ = CreateBasicNode(atRoot, $1, NULL, NULL); }
+  | body_lines footer { $$ = CreateBasicNode(atRoot, NULL, $1, NULL); }
+  | footer { $$ = CreateBasicNode(atRoot, NULL, NULL, NULL); }
+  ;
 
 definitions:
   definitions varDef endls { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
@@ -285,6 +289,7 @@ constant:
     }
   | STRING_CONSTANT
     {
+      printf("%s\n", $1);
       struct AstNode *stringNode = CreateBasicNode(atConstant, NULL, NULL, NULL);
       stringNode->variableType = characters;
       stringNode->s = $1;

@@ -4,17 +4,17 @@
 extern int yyparse();
 extern FILE *yyin;
 
-void EvaluateAST (struct AstNode* ast)
+void TranslateAST (struct AstNode* ast)
 {
     switch (ast->type)
     {
         case atRoot:
-            EvaluateAST(ast->child1);
-            EvaluateAST(ast->child2);
+            TranslateAST(ast->child1);
+            TranslateAST(ast->child2);
         break;
         case atStatementList:
-            EvaluateAST(ast->child1);
-            EvaluateAST(ast->child2);
+            TranslateAST(ast->child1);
+            TranslateAST(ast->child2);
         break;
         case atVariableDef:
 
