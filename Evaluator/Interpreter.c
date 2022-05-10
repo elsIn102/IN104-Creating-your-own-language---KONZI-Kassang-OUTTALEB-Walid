@@ -60,7 +60,11 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                     InterpreterError("Varitable type not valid");
                     break;
             }
-        break;
+            break;
+
+        case atPrint:
+
+            break;
         default:
             InterpreterError("Node not valid");
             return;
