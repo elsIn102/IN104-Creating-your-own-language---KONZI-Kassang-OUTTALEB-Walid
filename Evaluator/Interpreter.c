@@ -49,10 +49,20 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                     break;
 
                 case floating:
+                    fprintf(inMainFile, "float ");
+                    TranslateAST(ast->child1,outMainFile,inMainFile);
+                    fprintf(inMainFile, " = %f",ast->f);
 
                     break;
 
                 case characters:
+                    fprintf(inMainFile, "char* ");
+                    TranslateAST(ast->child1,outMainFile,inMainFile);
+                    fprintf("=malloc");
+                    fprintf((sizeof(char));\n"));
+                    fprintf("*%c",ast->child1);
+                    fprintf("= %c\n",ast->c);
+                    fprintf(inMainFile, " = %d",ast->i);
 
                     break;
 
