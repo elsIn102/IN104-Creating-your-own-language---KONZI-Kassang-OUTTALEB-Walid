@@ -2,6 +2,7 @@
   #include "../Parser-Bison/UF-C.tab.h"
 
   int line_num = 1;
+  int stringLength = 0;
 %}
 
 %option noyywrap
@@ -16,9 +17,10 @@
 <COMMENTS>\n    { line_num++; }      // still have to increment line numbers inside of comments!
 <COMMENTS>.     ;                    // ignore every other character while we are in this state
 
-\" { BEGIN(READING_STRING); }
-<READING_STRING>\" { BEGIN(INITIAL); }
-<READING_STRING>[^\"]* { yylval.sval = strdup(yytext); return STRING_CONSTANT; }
+\" { BEGIN(READING_STRING); stringLength = 0;}
+<READING_STRING>\" { BEGIN(INITIAL); stringLength++; }
+<READING_STRING>\n { ++line_num; stringLength++;}
+<READING_STRING>[^\"]* { yylval.sval = strdup(yytext); stringLength++; return STRING_CONSTANT; }
 
 "is starting its training with" {return FUNC_DEF_BEGIN_ARGS;}
 "to increase its"  { return FUNC_DEF_END_ARGS;}

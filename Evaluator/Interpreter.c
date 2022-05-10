@@ -58,8 +58,8 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                 case characters:
                     fprintf(inMainFile, "char* ");
                     TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf("=malloc");
-                    fprintf((sizeof(char));\n"));
+                    fprintf(inMainFile, "=malloc");
+                    fprintf("(sizeof(char));\n"));
                     fprintf("*%c",ast->child1);
                     fprintf("= %c\n",ast->c);
                     fprintf(inMainFile, " = %d",ast->i);
@@ -69,7 +69,9 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                 case noType:
 
                     break;
-
+                case atPrint:
+                    fprintf(inMainFile, "printf(");
+                    break;
                 default:
                     InterpreterError("Varitable type not valid");
                     break;

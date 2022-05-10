@@ -30,6 +30,7 @@ struct AstNode
     enum ComparatorType comparator;
     enum VariableType variableType;
 
+    int stringLength;
     char* s; int i; float f;
 
     struct AstNode *child1;

@@ -8,6 +8,7 @@
 
 
   extern int line_num;
+  extern int stringLength;
 
   // stuff from flex that bison needs to know about:
   extern int yylex();
@@ -114,6 +115,7 @@ varDef:
     {
       struct AstNode *stringDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
       stringDefNode->variableType = characters;
+      stringDefNode->stringLength = stringLength;
       stringDefNode->s = $3;
 
       $$ = stringDefNode;
@@ -241,7 +243,7 @@ assignmentOrFuncCall:
   | func_call { $$ = $1; }
   ;
 print:
-  PRINT nonVoidArgs { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  PRINT nonVoidArg { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
   ;
 return:
   nonVoidArg RETURN { $$ = CreateBasicNode(atReturn, $1, NULL, NULL); }
