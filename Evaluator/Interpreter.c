@@ -12,23 +12,23 @@ void InterpreterError(char* error_msg)
     printf("Error from the interpreter : %s\n", error_msg);
 }
 
-void TranslateAST (struct AstNode* ast, FILE* outFile)
+void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
 {
     switch (ast->type)
     {
         case atRoot:
-            TranslateAST(ast->child1, outFile);
-            TranslateAST(ast->child2, outFile);
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            TranslateAST(ast->child2, outMainFile, inMainFile);
 
             break;
         case atStatementList:
-            TranslateAST(ast->child1, outFile);
-            TranslateAST(ast->child2, outFile);
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            TranslateAST(ast->child2, outMainFile, inMainFile);
 
             break;
         case atElemList:
-            TranslateAST(ast->child1, outFile);
-            TranslateAST(ast->child2, outFile);
+            TranslateAST(ast->child1, outMainFile, inMainFile);
+            TranslateAST(ast->child2, outMainFile, inMainFile);
 
             break;
         case atLogicalOr:
@@ -108,12 +108,41 @@ int main(int argc, char* argv[])
     //We don't need the input file anymore
     fclose(myfile);
 
+    //Now we read the AST and add the function def,... in a temporary file 
+    //and the main part of the function into another
+
+    FILE* outMainFile = fopen("outMainTemp", "w");
+    if (outMainFile==NULL)
+    {
+        printf("Can't create the temporary outMain file\n");
+        FreeAST(ast);
+        return -1;
+    }
+
+    FILE* inMainFile = fopen("inMainTemp", "w");
+    if (inMainFile==NULL)
+    {
+        printf("Can't create the temporary inMain file\n");
+        fclose(outMainFile);
+        FreeAST(ast);
+        return -1;
+    }
+
+    TranslateAST(ast, outMainFile, inMainFile);
+    
+    //Now we don't need the AST anymore
+    FreeAST(ast);
+
+
+    //Now we create the output file
+
     //Defining the name of the output file as inputFileName (removing the extension .ufc)
     char* outFileName;
     if ((outFileName = malloc (strlen(fileName) + 1)) == NULL)
     {
         printf("Can't create the output file name\n");
-        FreeAST(ast);
+        fclose(outMainFile);
+        fclose(inMainFile);
         return -1;
     }
 
@@ -124,12 +153,13 @@ int main(int argc, char* argv[])
     {
         printf("Can't find any '.' in the name of the input file\n");
         free(outFileName);
-        FreeAST(ast);
+        fclose(outMainFile);
+        fclose(inMainFile);
         return -1;
     }
     *extension = '\0';
 
-    //Now we can concatenate because ".ufc" is longer than ".c" so no memory pb
+    //Now we can concatenate because ".ufc" is longer than ".c" so no memory problem
     strcat(outFileName, ".c");
 
     //From here on, outputFileName is the name of the file with the .c extension
@@ -139,14 +169,18 @@ int main(int argc, char* argv[])
     {
         printf("Can't create the output file\n");
         free(outFileName);
-        FreeAST(ast);
+        fclose(outMainFile);
+        fclose(inMainFile);
         return -1;
     }
-
-    //TranslateAST(ast, outFile);
-
-    FreeAST(ast);
     free(outFileName);
+
+    //Now we merge the outMainFile content and the inMainFile content to create the final .c output file
+
+
+    fclose(outFile);
+    fclose(outMainFile);
+    fclose(inMainFile);
 
     return 0;
 }
