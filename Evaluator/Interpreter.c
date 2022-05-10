@@ -56,13 +56,6 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                     break;
 
                 case characters:
-                    fprintf(inMainFile, "char* ");
-                    TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, "=malloc");
-                    fprintf(inMainFile, "(sizeof(char));\n");
-                    fprintf("*%c",ast->child1);
-                    fprintf("= %c\n",ast->s);
-                    fprintf(inMainFile, " = %d",ast->i);
 
                     break;
 
@@ -75,35 +68,27 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
             switch (ast->child1->type)
             {
                 case atId:
-                    char* s = malloc(15);
-                    if (s==NULL)
-                    {
-                        InterpreterError("Failed to allocate memory\n");
-                    }
-
                     //Need to know the variable type of the variable to print (add a new keyword ?)
                     switch(ast->child1->variableType)
                     {
                         case integer:
-                            s = "printf(\"%%d\n\",";
+                            fprintf(inMainFile, "printf(\"%%d\n\",");
                         break;
                         case floating:
-                            s = "printf(\"%%f\n\",";
+                            fprintf(inMainFile, "printf(\"%%f\n\",");
                         break;
                         case characters:
-                            s = "printf(\"%%s\n\",";
+                            fprintf(inMainFile, "printf(\"%%s\n\",");
                         break;
                         default:
                             InterpreterError("Not a valid variable type to print\n");
                         break;
                     }
 
-                    fprintf(inMainFile, s);
-                    free(s);
                     TranslateAST(ast->child1, outMainFile, inMainFile);
                     fprintf(inMainFile, ");\n");
                     
-                break;
+                    break;
                 case atConstant:
                     switch(ast->variableType)
                     {
