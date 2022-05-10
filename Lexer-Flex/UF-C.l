@@ -18,7 +18,7 @@
 
 \" { BEGIN(READING_STRING); }
 <READING_STRING>\" { BEGIN(INITIAL); }
-<READING_STRING>.* { yylval.sval = strdup(yytext); return STRING_CONSTANT; }
+<READING_STRING>[^\"]* { yylval.sval = strdup(yytext); return STRING_CONSTANT; }
 
 "is starting its training with" {return FUNC_DEF_BEGIN_ARGS;}
 "to increase its"  { return FUNC_DEF_END_ARGS;}
