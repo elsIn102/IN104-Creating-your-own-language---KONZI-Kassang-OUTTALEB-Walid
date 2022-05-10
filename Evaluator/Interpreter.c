@@ -58,11 +58,10 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                 case characters:
                     fprintf(inMainFile, "char* ");
                     TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, "=malloc");
-                    fprintf("(sizeof(char));\n"));
-                    fprintf("*%c",ast->child1);
-                    fprintf("= %c\n",ast->c);
-                    fprintf(inMainFile, " = %d",ast->i);
+                    fprintf(inMainFile, "=malloc(%d*(sizeof(char)));\n",ast->stringLength);
+                    TranslateAST(ast->child1,outMainFile,inMainFile);
+                    fprintf(inMainFile,"= %s;\n",ast->s);
+                   
 
                     break;
 
