@@ -59,9 +59,9 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                     fprintf(inMainFile, "char* ");
                     TranslateAST(ast->child1,outMainFile,inMainFile);
                     fprintf(inMainFile, "=malloc");
-                    fprintf("(sizeof(char));\n"));
+                    fprintf(inMainFile, "(sizeof(char));\n");
                     fprintf("*%c",ast->child1);
-                    fprintf("= %c\n",ast->c);
+                    fprintf("= %c\n",ast->s);
                     fprintf(inMainFile, " = %d",ast->i);
 
                     break;
@@ -69,17 +69,62 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
                 case noType:
 
                     break;
-                case atPrint:
-                    fprintf(inMainFile, "printf(");
-                    break;
-                default:
-                    InterpreterError("Varitable type not valid");
-                    break;
             }
             break;
-
         case atPrint:
+            switch (ast->child1->type)
+            {
+                case atId:
+                    char* s = malloc(15);
+                    if (s==NULL)
+                    {
+                        InterpreterError("Failed to allocate memory\n");
+                    }
 
+                    //Need to know the variable type of the variable to print (add a new keyword ?)
+                    switch(ast->child1->variableType)
+                    {
+                        case integer:
+                            s = "printf(\"%%d\n\",";
+                        break;
+                        case floating:
+                            s = "printf(\"%%f\n\",";
+                        break;
+                        case characters:
+                            s = "printf(\"%%s\n\",";
+                        break;
+                        default:
+                            InterpreterError("Not a valid variable type to print\n");
+                        break;
+                    }
+
+                    fprintf(inMainFile, s);
+                    free(s);
+                    TranslateAST(ast->child1, outMainFile, inMainFile);
+                    fprintf(inMainFile, ");\n");
+                    
+                break;
+                case atConstant:
+                    switch(ast->variableType)
+                    {
+                        case integer:
+                            fprintf(inMainFile, "printf(\"%d\");\n", ast->i);
+                        break;
+                        case floating:
+                            fprintf(inMainFile, "printf(\"%f\");\n", ast->f);
+                        break;
+                        case characters:
+                            fprintf(inMainFile, "printf(\"%s\");\n", ast->s);
+                        break;
+                        default:
+                            InterpreterError("Not a valid variable type to print\n");
+                        break;
+                    }
+                break;
+                default:
+                    InterpreterError("The ring gal can't show this type of data\n");
+                break;
+            }
             break;
         default:
             InterpreterError("Node not valid");
