@@ -1,0 +1,113 @@
+/*addition of numbers: floats*/
+
+/* comment*/
+
+z has an IQ of 0.0
+
+F is starting its training with x and y to increase its IQ :
+    x joins y
+    x hits z
+    z is thrown out
+training is over
+
+a has an IQ of 25.6
+b has an IQ of 25.5
+d has an IQ of 51.1
+
+F hits c with a and b
+the ring girl shows c
+the ring girl shows d  
+
+end
+
+
+/////////////////////// WHILE LOOP
+
+/*Definitions*/
+
+z has an IQ of 0.0
+
+a has this number of fans : 256
+b has this number of fans : 15
+c has this number of fans : 0
+
+F is starting its training with x and y to increase its IQ:
+    x joins y
+    x hits z
+    z is thrown out
+training is over
+
+
+instructions is starting its training with x and y to increase its effectiveness:
+y removes 1
+training is over
+
+/*Main*/
+
+a beats down b until they give up
+meanwhile instructions enrolls a and b
+
+end
+
+F hits c with a and b
+the ring girl shows c
+the ring girl shows d 
+
+
+
+
+
+
+///////////////////////////IF CONDITIONS
+
+/*Definitions*/
+
+z has an IQ of 0.0
+
+a has this number of fans : 256
+b has this number of fans : 15
+c has this number of fans : 0
+
+F is starting its training with x and y to increase its IQ:
+    x joins y
+    x hits z
+    z is thrown out
+training is over
+
+
+instructions is starting its training with x and y to increase its effectiveness:
+y removes 1
+training is over
+
+/*Main*/
+
+A new competition begins :
+    -Match 1: a challenges b
+    -Match 2: b challenges c
+And the gambling den opens :
+    -F bets on 1 and 2 using a and b and gives the money to c
+    -F takes the rest of the bets with a and b and gives the money to c
+
+end
+
+
+/*void functions*/
+
+a has this number of fans : 50
+b has this number of fans : 25
+z has this number of fans : 0
+
+instructions is starting its training with x and y to increase its effectiveness:
+x removes 1
+y joins 1
+training is over
+
+a beats down b until they give up
+meanwhile instructions enrolls b and z
+
+the ring girl shows z
+the ring girl shows b
+
+
+end
+
