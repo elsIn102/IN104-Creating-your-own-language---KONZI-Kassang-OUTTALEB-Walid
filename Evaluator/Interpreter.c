@@ -41,7 +41,11 @@ void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
             switch (ast->variableType)
             {
                 case integer:
-                    
+                    fprintf(inMainFile, "int ");
+                    TranslateAST(ast->child1,outMainFile,inMainFile);
+                    fprintf(inMainFile, " = %d",ast->i);
+
+
                     break;
 
                 case floating:

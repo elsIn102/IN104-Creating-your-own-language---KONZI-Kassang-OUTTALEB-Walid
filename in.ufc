@@ -1,26 +1,18 @@
 
-nums has this number of fans : 50
-a has this number of fans : 0
-b has this number of fans : 1
-d has this number of fans : 0
+a has an IQ of 1
+b has an IQ of 2
+c has an IQ of 1
 
-/*instructions is starting its training with x, y, z and num to increase its effectiveness:
-x joins z
-y joins z
-y hits x
-z hits y
-num removes 1
-training is over*/
+D has an IQ of 0
+x has an IQ of 0
+y has an IQ of 0
 
-instructions is starting its training with x, y and num to increase its effectiveness:
-1 joins x
-num removes 1
-the ring girl shows num
-the ring girl shows x
-
+Anul is starting its training to increase its effectiveness:
+the ring girl shows "a nul : ce n'est pas un polynome de degre 2"
 training is over
 
-nums beats down 0 until they fight back
-meanwhile instructions enrolls a and nums
-
-end
+A new competition begins :
+    -Match 1: a challenges 0
+    -Match 2: 0 challenges a
+And the gambling den opens :
+    -Anul bets on 1 abd 2 using 
