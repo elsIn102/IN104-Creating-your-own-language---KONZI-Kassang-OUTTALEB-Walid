@@ -5,4 +5,4 @@ lex.UF-C.c: ./Lexer-Flex/UF-C.l
 	flex -o ./Lexer-Flex/lex.UF-C.c ./Lexer-Flex/UF-C.l
 
 UF-C: lex.UF-C.c UF-C.tab.c
-	gcc ./Parser-Bison/UF-C.tab.c ./Lexer-Flex/lex.UF-C.c ./Utils/AST.c ./Utils/ComparisonDictionnary.c ./Translator/Translator.c ./Evaluator/Main.c -o UF-C
+	gcc ./Parser-Bison/UF-C.tab.c ./Lexer-Flex/lex.UF-C.c ./Utils/AST.c ./Utils/ComparisonDictionnary.c ./Translator/Translator.c ./Interpreter/Interpreter.c ./Evaluator/Main.c -o UF-C
