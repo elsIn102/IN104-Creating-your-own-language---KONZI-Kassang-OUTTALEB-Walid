@@ -245,7 +245,7 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
         case atId:
             fprintf(currentFile, "%s", ast->s);
             break;
-        case atFuncArg:
+        case atFuncDefArg:
             switch (ast->variableType)
             {
             case integer:
