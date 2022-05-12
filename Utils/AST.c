@@ -8,7 +8,7 @@ struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, st
     if (node==NULL)
     {
         printf("Memory error\n");
-        exit(2); //Closes all pointers, opened files, ... and exits the program with error 2
+        exit(1); //Closes all pointers, opened files, ... and exits the program with error 2
     }
 
     node->type = _type;

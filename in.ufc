@@ -1,18 +1,47 @@
+/*
+a has an IQ of 1.0
+b has an IQ of 2.0
+c has an IQ of 1.0
 
-a has an IQ of 1
-b has an IQ of 2
-c has an IQ of 1
+D has an IQ of 0.0
+x has an IQ of 0.0
+y has an IQ of 0.0
 
-D has an IQ of 0
-x has an IQ of 0
-y has an IQ of 0
-
-Anul is starting its training to increase its effectiveness:
-the ring girl shows "a nul : ce n'est pas un polynome de degre 2"
+Show is starting its training with the smart printVal to increase its effectiveness:
+    the ring girl shows printVal
 training is over
 
 A new competition begins :
     -Match 1: a challenges 0
     -Match 2: 0 challenges a
 And the gambling den opens :
-    -Anul bets on 1 abd 2 using 
+    -Show bets on 1 and 2 using a
+
+*/
+
+/*addition of numbers: floats*/
+
+/* comment*/
+
+z has an IQ of 0.0
+
+F is starting their training with the smart x and the smart y to increase their IQ :
+    x joins y and hits z
+    z is thrown out
+training is over
+
+a has an IQ of 25.6
+b has an IQ of 25.5
+c has an IQ of 0.0
+
+And the competition begins
+
+F punches c with a and b
+
+the ring girl shows the wits of a
+the ring girl shows " + "
+the ring girl shows the wits of b
+the ring girl shows " = "
+the ring girl shows the wits of c
+
+end

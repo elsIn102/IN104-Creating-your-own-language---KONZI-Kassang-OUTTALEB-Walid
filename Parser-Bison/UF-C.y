@@ -2,6 +2,9 @@
   #include "../Utils/AST.h"
 }
 
+// For debugging
+%define parse.trace
+
 %code {
   #include <stdio.h>
   #include <stdlib.h>
@@ -9,6 +12,8 @@
 
   extern int line_num;
   extern int stringLength;
+  extern int char_pos_in_line, current_token_length, previous_token_length;
+  extern char* yytext; // Text of the current token
 
   // stuff from flex that bison needs to know about:
   extern int yylex();
@@ -25,27 +30,29 @@
   char* sval;
 
   struct AstNode *nodeVal;
-  enum AstType typeVal;
   enum ComparatorType comparatorVal;
   enum VariableType varTypeVal;
 }
 
+
 // define the constant-string tokens:
 %token END ENDL
+%token DEFINITIONS_END
 
-%token ASSIGN AND
-%token IQ FANS BONES ANNOUNCES
-%token PRINT
+%token ASSIGN ASSIGN_FUNC AND
+%token IQ FANS ANNOUNCES
+%token PRINT PRINT_INT PRINT_FLOAT PRINT_STRING
 
-%token ADD MINUS MULTIPLY DIVIDE
+%left ADD MINUS MULTIPLY DIVIDE
 
 %token TEST_GTR TEST_STR_GTR
 %token COLON HYPHEN COMMA
 
 %token BEGIN_TEST BEGIN_BRANCH BEGIN_ELSE
-%token BEGIN_COMPARISON BEGIN_CONDITION 
+%token BEGIN_COMPARISON BEGIN_CONDITION BEGIN_ELSE_BRANCH END_CONDITION
 
 %token BEGIN_ARGS FUNC_DEF_BEGIN_ARGS FUNC_DEF_END_ARGS END_FUNC RETURN
+%token FLOAT_FUNC_ARG INT_FUNC_ARG STRING_FUNC_ARG
 %token TYPE_FLOAT TYPE_INT TYPE_STRING TYPE_VOID
 %token BREAK CONTINUE
 
@@ -60,15 +67,15 @@
 %token <sval> STRING STRING_CONSTANT
 %token VOID
 
-%type<typeVal> operator
 %type<varTypeVal> funcReturnType
 %type<comparatorVal> comparator
 %type<nodeVal> start
 %type<nodeVal> definitions body_line body_lines
 %type<nodeVal> varDef function_def function_body
 %type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
-%type<nodeVal> id ids idOrVoid constant exp args void nonVoidArg nonVoidArgs
-%type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_if_branchs test_else_branch test_branchs
+%type<nodeVal> id idOrVoid constant exp void args nonVoidArg nonVoidArgs nonVoidFuncArg nonVoidFuncArgs funcArgs
+%type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_elseIf_branch test_elseIf_branchs test_else_branch test_branchs
+
 
 %%
 
@@ -78,15 +85,15 @@ UF-C:
   | start { *ast = $1; }
   ;
 start:
-    definitions body_lines footer { $$ = CreateBasicNode(atRoot, $1, $2, NULL); }
+    definitions DEFINITIONS_END endls body_lines footer { $$ = CreateBasicNode(atRoot, $1, $4, NULL); }
   | definitions footer { $$ = CreateBasicNode(atRoot, $1, NULL, NULL); }
   | body_lines footer { $$ = CreateBasicNode(atRoot, NULL, $1, NULL); }
   | footer { $$ = CreateBasicNode(atRoot, NULL, NULL, NULL); }
   ;
 
 definitions:
-  definitions varDef endls { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
-  | definitions function_def endls { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
+  varDef endls definitions { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }
+  | function_def endls definitions { $$ = CreateBasicNode(atStatementList, $1, $3, NULL); }
   | varDef endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   | function_def endls { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
@@ -99,10 +106,6 @@ varDef:
 
       $$ = intDefNode;
     }
-  | id BONES INT { // Char values
-    // if ($3 < 255)
-    printf("New defined char \n");
-  }
   | id IQ FLOAT
     {
       struct AstNode *floatDefNode = CreateBasicNode(atVariableDef, $1, NULL, NULL); 
@@ -122,12 +125,43 @@ varDef:
     }
   ;
 function_def:
-  id FUNC_DEF_BEGIN_ARGS ids FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
+  id FUNC_DEF_BEGIN_ARGS funcArgs FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
     {
       struct AstNode *funcDefNode = CreateBasicNode(atFuncDef, $1, $3, $8); 
       funcDefNode->variableType = $5;
 
       $$ = funcDefNode;
+    }
+  ;
+funcArgs:
+  nonVoidFuncArgs { $$ = $1; }
+  | void { $$ = $1; }
+  ;
+nonVoidFuncArgs:
+  nonVoidFuncArg and nonVoidFuncArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  | nonVoidFuncArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
+  ;
+nonVoidFuncArg:
+  INT_FUNC_ARG id 
+    {
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      funcArgNode->variableType = integer;
+
+      $$ = funcArgNode;
+    }
+  | FLOAT_FUNC_ARG id
+    {
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      funcArgNode->variableType = floating;
+
+      $$ = funcArgNode;
+    }
+  | STRING_FUNC_ARG id
+    {
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      funcArgNode->variableType = characters;
+
+      $$ = funcArgNode;
     }
   ;
 funcReturnType:
@@ -142,7 +176,7 @@ function_body:
 
 
 body_lines:
-  body_lines body_line { $$ = CreateBasicNode(atStatementList, $2, $1, NULL); }
+  body_line body_lines { $$ = CreateBasicNode(atStatementList, $1, $2, NULL); }
   | body_line { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
   ;
 body_line:
@@ -156,21 +190,28 @@ body_line:
   | CONTINUE endls { $$ = CreateBasicNode(atContinue, NULL, NULL, NULL); }
   | return endls { $$ = $1; }
   ;
-exp:
-  exp operator exp { $$ = CreateBasicNode($2, $1, $3, NULL); }
-  | constant { $$ = $1; }
-  | id { $$ = $1; }
-  ;
 assignment:
-  id ASSIGN exp { $$ = CreateBasicNode(atAssignment, $1, $3, NULL); }
-  | id ASSIGN func_call { $$ = CreateBasicNode(atAssignment, $1, $3, NULL); }
+  exp and ASSIGN id { $$ = CreateBasicNode(atAssignment, $4, $1, NULL); }
+  | nonVoidArg ASSIGN id { $$ = CreateBasicNode(atAssignment, $3, $1, NULL); }
+  | id ASSIGN_FUNC id BEGIN_ARGS args 
+    { 
+      struct AstNode *funcCallNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
+      $$ = CreateBasicNode(atAssignment, $3, funcCallNode, NULL); 
+    }
+  ;
+exp:
+  exp ADD exp { $$ = CreateBasicNode(atAdd, $1, $3, NULL); }
+  | exp MINUS exp { $$ = CreateBasicNode(atMinus, $1, $3, NULL); }
+  | exp MULTIPLY exp { $$ = CreateBasicNode(atMultiply, $1, $3, NULL); }
+  | exp DIVIDE exp { $$ = CreateBasicNode(atDivide, $1, $3, NULL); }
+  | nonVoidArg { $$ = $1; }
   ;
 
 test:
   BEGIN_TEST COLON endls test_comparisons_declarations BEGIN_BRANCH COLON endls test_branchs { $$ = CreateBasicNode(atTest, $4, $8, NULL); }
   ;
 test_comparisons_declarations:
-  test_comparisons_declarations HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
+  HYPHEN test_comparison_declaration test_comparisons_declarations { $$ = CreateBasicNode(atStatementList, $2, $3, NULL); }
   | HYPHEN test_comparison_declaration { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
   ;
 test_comparison_declaration:
@@ -183,25 +224,49 @@ test_comparison_declaration:
       $$ = testComparisonNode;
     }
   ;
-comparator:AND
+comparator:
   TEST_GTR { $$ = gtr; }
   | TEST_STR_GTR { $$ = str_gtr; }
   ;
 test_branchs:
-  test_if_branchs HYPHEN test_else_branch { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
-  | test_if_branchs { $$ = CreateBasicNode(atStatementList, $1, NULL, NULL); }
-test_if_branchs:
-  test_if_branchs HYPHEN test_if_branch { $$ = CreateBasicNode(atStatementList, $3, $1, NULL); }
-  | HYPHEN test_if_branch { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
+  HYPHEN test_if_branch END_CONDITION { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
+  | HYPHEN test_if_branch test_elseIf_branchs END_CONDITION { $$ = CreateBasicNode(atStatementList, $2, $3, NULL); }
+  | HYPHEN test_if_branch BEGIN_ELSE_BRANCH test_else_branch END_CONDITION
+    { 
+      struct AstNode *elseStatementNode = CreateBasicNode(atStatementList, $4, NULL, NULL);
+      $$ = CreateBasicNode(atStatementList, $2, elseStatementNode, NULL); 
+    }
+  | HYPHEN test_if_branch test_elseIf_branchs BEGIN_ELSE_BRANCH test_else_branch END_CONDITION
+    {
+      struct AstNode *elseStatementNode = CreateBasicNode(atStatementList, $5, NULL, NULL);
+      
+      struct AstNode *temp;
+      for (temp = $3; temp->child2!=NULL; temp = temp->child2); // Find the last element of the test_elseIf_branches node list
+      temp->child2 = elseStatementNode; // Assign the else statement at the end of the list
+
+      $$ = CreateBasicNode(atStatementList, $2, $3, NULL);
+    }
   ;
 test_if_branch:
   id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
-      struct AstNode *ifBranchNode = CreateBasicNode(atTestIfBranch, $3, assignNode, NULL);
 
-      $$ = ifBranchNode;
+      $$ = CreateBasicNode(atTestIfBranch, $3, assignNode, NULL);
+    }
+  ;
+test_elseIf_branchs:
+  HYPHEN test_elseIf_branch test_elseIf_branchs { $$ = CreateBasicNode(atStatementList, $2, $3, NULL); }
+  | HYPHEN test_elseIf_branch { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
+  ;
+test_elseIf_branch:
+  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
+    {
+      struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
+      struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
+
+      $$ = CreateBasicNode(atTestElseIfBranch, $3, assignNode, NULL);
     }
   ;
 disjunctive_normal_form_comparisons:
@@ -219,15 +284,11 @@ test_else_branch:
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);
-      struct AstNode *elseBranchNode = CreateBasicNode(atTestElseBranch, assignNode, NULL, NULL);
 
-      $$ = elseBranchNode;
+      $$ = CreateBasicNode(atTestElseBranch, assignNode, NULL, NULL);
     }
   ;
 
-func_call:
-  id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
-  ;
 while_loop:
   nonVoidArg WHILE nonVoidArg LOOP_NOTNULL endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
     { $$ = CreateWhileNode(neq, $3, 0, $7); }
@@ -242,8 +303,32 @@ assignmentOrFuncCall:
   assignment { $$ = $1; }
   | func_call { $$ = $1; }
   ;
+func_call:
+  id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
+  ;
 print:
-  PRINT nonVoidArg { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  PRINT constant { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
+  | PRINT PRINT_INT id
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = integer;
+
+      $$ = printNode;
+    }
+  | PRINT PRINT_FLOAT id
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = floating;
+
+      $$ = printNode;
+    }
+  | PRINT PRINT_STRING id
+    { 
+      struct AstNode *printNode = CreateBasicNode(atPrint, $3, NULL, NULL);
+      printNode->variableType = characters;
+
+      $$ = printNode;
+    }
   ;
 return:
   nonVoidArg RETURN { $$ = CreateBasicNode(atReturn, $1, NULL, NULL); }
@@ -255,17 +340,15 @@ footer:
   | END endls
   ;
 endls:
-  endls ENDL
+  ENDL endls
   | ENDL
   ;
-
 args:
   nonVoidArgs { $$ = $1; }
-  | args and void { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
-  | void { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
+  | void { $$ = $1; }
   ;
 nonVoidArgs:
-  nonVoidArgs and nonVoidArg { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
+  nonVoidArg and nonVoidArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
   | nonVoidArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArg:
@@ -299,13 +382,6 @@ constant:
     }
   ;
 
-operator:
-  ADD { $$ = atAdd; }
-  | MINUS { $$ = atMinus; }
-  | MULTIPLY { $$ = atDivide; }
-  | DIVIDE { $$ = atMultiply; }
-  ;
-
 comparisonId:
   INT
     {
@@ -318,10 +394,6 @@ comparisonId:
 idOrVoid:
   id { $$ = $1; }
   | void { $$ = $1; }
-  ;
-ids:
-  ids and id { $$ = CreateBasicNode(atElemList, $3, $1, NULL); }
-  | id { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 id:
   STRING
@@ -339,45 +411,15 @@ and:
   AND
   | COMMA
   ;
-
 %%
-/*
-int main() {
-  // open a file handle to a particular file:
-  FILE *myfile = fopen("in.ufc", "r");
-  // make sure it's valid:
-  if (!myfile) {
-    printf("I can't open in.ufc file!\n");
-    return -1;
-  }
-  // Set flex to read from it instead of defaulting to STDIN:
-  yyin = myfile;
 
-  struct AstNode* _ast;
 
-  // Parse through the input:
-  int error = yyparse(&_ast);
-  if (error != 0)
-  {
-    printf("Error during parsing\n");
-    return 1;
-  }
-
-  FILE* outFile = fopen("out.ufc", "w");
-  if (outFile!=NULL)
-  {
-    AstToCode(_ast, outFile);
-    fclose(outFile);
-  }
-
-  FreeAST(_ast);
-
-  return 0;
-}
-*/
 void yyerror(struct AstNode** errorAstPtr, const char *s) {
-  printf("Parse error on line %d : %s\n", line_num, s);
+  // Bison always reads one token ahead so we need to substract the last 2 tokens length to find the position of the problematic token
+  int tokenPos = char_pos_in_line - previous_token_length - current_token_length;
+  printf("Parse error on line %d:%d (%s) : %s\n", line_num, tokenPos, yytext, s);
   // might as well halt now:
-  FreeAST(*errorAstPtr);
-  exit(-1);
+  if (errorAstPtr!=NULL)
+    FreeAST(*errorAstPtr);
+  exit(1);
 }

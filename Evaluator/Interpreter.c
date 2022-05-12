@@ -1,91 +1,16 @@
-#include "../Utils/AST.h"
-#include "../Parser-Bison/UF-C.tab.h"
-
 #include <stdlib.h>
 #include <string.h>
 
-extern int yyparse();
+#include "../Utils/AST.h"
+#include "../Parser-Bison/UF-C.tab.h"
+#include "../Utils/ComparisonDictionnary.h"
+#include "../Translator/Translator.h"
+
+// Flex: file to read from
 extern FILE *yyin;
+// Bison: parsing function
+extern int yyparse();
 
-void InterpreterError(char* error_msg)
-{
-    printf("Error from the interpreter : %s\n", error_msg);
-}
-
-void TranslateAST (struct AstNode* ast, FILE* outMainFile, FILE* inMainFile)
-{
-    switch (ast->type)
-    {
-        case atRoot:
-            TranslateAST(ast->child1, outMainFile, inMainFile);
-            TranslateAST(ast->child2, outMainFile, inMainFile);
-
-            break;
-        case atStatementList:
-            TranslateAST(ast->child1, outMainFile, inMainFile);
-            TranslateAST(ast->child2, outMainFile, inMainFile);
-
-            break;
-        case atElemList:
-            TranslateAST(ast->child1, outMainFile, inMainFile);
-            TranslateAST(ast->child2, outMainFile, inMainFile);
-
-            break;
-        case atLogicalOr:
-
-            break;
-        case atLogicalAnd:
-
-            break;
-        case atVariableDef:
-            switch (ast->variableType)
-            {
-                case integer:
-                    fprintf(inMainFile, "int ");
-                    TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %d",ast->i);
-
-
-                    break;
-
-                case floating:
-                    fprintf(inMainFile, "float ");
-                    TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %f",ast->f);
-
-                    break;
-
-                case characters:
-                    fprintf(inMainFile, "char* ");
-                    TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, "=malloc(%d*(sizeof(char)));\n",ast->stringLength);
-                    TranslateAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile,"= %s;\n",ast->s);
-                   
-
-                    break;
-
-                case noType:
-
-                    break;
-                case atPrint:
-                    fprintf(inMainFile, "printf(");
-                    break;
-                default:
-                    InterpreterError("Varitable type not valid");
-                    break;
-            }
-            break;
-
-        case atPrint:
-
-            break;
-        default:
-            InterpreterError("Node not valid");
-            return;
-        break;
-    }
-}
 
 int main(int argc, char* argv[]) 
 {
@@ -100,6 +25,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+
+    /**************** Opening the code file ***********************/
+
     char* fileName = argv[1];
 
     // open the input file
@@ -107,15 +35,21 @@ int main(int argc, char* argv[])
     if (!myfile) 
     {
         printf("Cannot open in.ufc file\n");
-        return -1;
+        return 1;
     }
 
-    // Set flex to read from it instead of defaulting to STDIN:
-    yyin = myfile;
+
+    /******************* Creating the AST ***********************/
 
     struct AstNode* ast;
 
-    // Parse through the input:
+    // Set flex to read from it instead of defaulting to STDIN:
+    yyin = myfile;
+    // Not zero to trace Bison states (debug)
+    extern int yydebug;
+    yydebug = 0;
+
+    // Parse through the input and get the AST
     int error = yyparse(&ast);
     if (error != 0)
     {
@@ -124,82 +58,62 @@ int main(int argc, char* argv[])
         fclose(myfile);
         return error;
     }
-    //We don't need the input file anymore
+    // We don't need the input file anymore
     fclose(myfile);
 
-    //Now we read the AST and add the function def,... in a temporary file 
-    //and the main part of the function into another
 
-    FILE* outMainFile = fopen("outMainTemp", "w");
-    if (outMainFile==NULL)
-    {
-        printf("Can't create the temporary outMain file\n");
-        FreeAST(ast);
-        return -1;
-    }
+    /**************** Creating the output '.c' file ********************/
 
-    FILE* inMainFile = fopen("inMainTemp", "w");
-    if (inMainFile==NULL)
-    {
-        printf("Can't create the temporary inMain file\n");
-        fclose(outMainFile);
-        FreeAST(ast);
-        return -1;
-    }
-
-    TranslateAST(ast, outMainFile, inMainFile);
-    
-    //Now we don't need the AST anymore
-    FreeAST(ast);
-
-
-    //Now we create the output file
-
-    //Defining the name of the output file as inputFileName (removing the extension .ufc)
+    // Getting the name of the output file (removing the extension .ufc)
     char* outFileName;
     if ((outFileName = malloc (strlen(fileName) + 1)) == NULL)
     {
         printf("Can't create the output file name\n");
-        fclose(outMainFile);
-        fclose(inMainFile);
-        return -1;
+        return 1;
     }
-
+    // Copy the name of the input file in outFileName
     strcpy(outFileName, fileName);
 
+    // Find the position in memory of the '.'
     char* extension = strrchr(outFileName, '.');
     if (extension == NULL)
     {
         printf("Can't find any '.' in the name of the input file\n");
         free(outFileName);
-        fclose(outMainFile);
-        fclose(inMainFile);
-        return -1;
+        return 1;
     }
+    // Assign 'end of char*' character at that position
     *extension = '\0';
 
-    //Now we can concatenate because ".ufc" is longer than ".c" so no memory problem
+    // Now we can concatenate because ".ufc" is longer than ".c" so no memory problem
     strcat(outFileName, ".c");
 
-    //From here on, outputFileName is the name of the file with the .c extension
 
+    // From here on, outputFileName is the name of the file with the .c extension
+    // Creating the output file
     FILE* outFile = fopen(outFileName, "w");
     if (outFile==NULL)
     {
         printf("Can't create the output file\n");
         free(outFileName);
-        fclose(outMainFile);
-        fclose(inMainFile);
-        return -1;
+        return 1;
     }
+    // Name of the output file useless now so we can free it
     free(outFileName);
 
-    //Now we merge the outMainFile content and the inMainFile content to create the final .c output file
 
+    /************* Translating the AST into the output file ***************/
+
+    if (TranslateAST (ast, outFile))
+        printf("Error while translating the AST\n");
+    
+    // We don't need the AST anymore
+    FreeAST(ast);
+
+
+    /********************* Closing the outpur file **********************/
 
     fclose(outFile);
-    fclose(outMainFile);
-    fclose(inMainFile);
 
     return 0;
 }
