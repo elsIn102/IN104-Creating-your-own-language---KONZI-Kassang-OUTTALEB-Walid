@@ -313,7 +313,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
             if (value2==NULL)
             {
                 free(value1);
-                InterpreterError("Error: extraction of Value1 unsuccessful");
+                InterpreterError("Error: extraction of Value2 unsuccessful");
                 return 1;
             }
 
@@ -333,7 +333,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
                     }
                     else 
                     {
-                        InterpreterError("Error: variable types incompatible")
+                        InterpreterError("Error: variable types incompatible");
                     }
                 }
                 
@@ -351,7 +351,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
                     }
                     else 
                     {
-                        InterpreterError()
+                        InterpreterError("Error: variable types incompatible");
                     }
                 }
 
@@ -359,7 +359,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
             }
             else
             {
-
+                    InterpreterError("failure");
             }
             
             free(value1);
@@ -373,7 +373,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
             struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
             if (value1==NULL)
             {
-                InterpreterError
+                InterpreterError("Error: extraction of Value1 unsuccessful");
                 return 1;
             }
 
@@ -381,7 +381,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
             if (value2==NULL)
             {
                 free(value1);
-                InterpreterError
+                InterpreterError("Error: extraction of Value2 unsuccessful");
                 return 1;
             }
 
@@ -402,7 +402,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
                     }
                     else 
                     {
-                        InterpreterError()
+                        InterpreterError("Error: variable types incompatible");
                     }
                 }
                 
@@ -420,7 +420,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
                     }
                     else 
                     {
-                        InterpreterError()
+                       InterpreterError("Error: variable types incompatible");
                     }
                 }
 
@@ -428,7 +428,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
             }
             else
             {
-                InterpreterError()
+                InterpreterError("failure");
 
             }
             
