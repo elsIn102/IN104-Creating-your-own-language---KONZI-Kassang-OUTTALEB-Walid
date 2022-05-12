@@ -1,6 +1,7 @@
 #ifndef __SYMBOL_TABLE_DATA_H__
 #define __SYMBOL_TABLE_DATA_H__
 
+#include "AST.h"
 
 struct VariableStruct {
     char* id;
@@ -9,7 +10,10 @@ struct VariableStruct {
     float f;
     char* s;
 
-    struct VaraibleStruct* nextInHash;
+    // Pointer to the body of the function in the AST
+    struct AstNode* functionBody;
+
+    struct VariableStruct* nextInHash;
 };
 
 

@@ -2,7 +2,7 @@
 #include "Hash.h"
 
 // Hash function for char* named djb2
-unsigned long djb2_hash (unsigned char *str) {
+unsigned long djb2_hash (char *str) {
     unsigned long hash = 5381;
     int c;
 
@@ -14,7 +14,7 @@ unsigned long djb2_hash (unsigned char *str) {
 
 
 // Allocate memory for a new hashtable of size HASH_TABLE_SIZE
-int CreateHashTable (struct HashStruct** hashtable) {
+int Create_Hashtable (struct HashStruct** hashtable) {
     struct HashStruct* hash = malloc(sizeof(struct HashStruct));
 
 	if (hash==NULL) {
@@ -39,7 +39,7 @@ int CreateHashTable (struct HashStruct** hashtable) {
 }
 
 // Free the memory used by the hashtable
-void FreeHashTable (struct HashStruct* hashtable) {
+void Free_Hashtable (struct HashStruct* hashtable) {
     if (hashtable==NULL)
         return;
     
