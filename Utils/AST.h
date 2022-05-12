@@ -8,9 +8,9 @@ enum AstType
     atRoot,
     atStatementList, atElemList, atLogicalOr, atLogicalAnd,
     atVariableDef, atFuncDef,
-    atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseBranch,
+    atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
-    atId, atConstant, atVoid,
+    atId, atFuncArg, atConstant, atVoid,
     atAdd, atMinus, atMultiply, atDivide, atPrint
 };
 

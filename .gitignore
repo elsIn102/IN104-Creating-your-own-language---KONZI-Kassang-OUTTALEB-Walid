@@ -1,7 +1,13 @@
+.vscode
+
 Parser-Bison/UF-C.tab.c
 Parser-Bison/UF-C.tab.h
 Parser-Bison/UF-C.output
 Lexer-Flex/lex.UF-C.c
+
 UF-C
-.vscode
 in.c
+
+_mainTemp
+_funcTemp
+_varTemp
