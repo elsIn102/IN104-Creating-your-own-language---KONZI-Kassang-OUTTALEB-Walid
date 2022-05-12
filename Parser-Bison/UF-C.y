@@ -73,7 +73,7 @@
 %type<nodeVal> definitions body_line body_lines
 %type<nodeVal> varDef function_def function_body
 %type<nodeVal> while_loop func_call print return assignment assignmentOrFuncCall
-%type<nodeVal> id idOrVoid constant exp void args nonVoidArg nonVoidArgs nonVoidFuncArg nonVoidFuncArgs funcArgs
+%type<nodeVal> id idOrVoid constant exp void nonVoidArg nonVoidFuncCallArgs funcCallArgs nonVoidFuncDefArg nonVoidFuncDefArgs funcDefArgs
 %type<nodeVal> test test_comparisons_declarations test_comparison_declaration disjunctive_normal_form_comparisons andComparisons comparisonId test_if_branch test_elseIf_branch test_elseIf_branchs test_else_branch test_branchs
 
 
@@ -125,7 +125,7 @@ varDef:
     }
   ;
 function_def:
-  id FUNC_DEF_BEGIN_ARGS funcArgs FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
+  id FUNC_DEF_BEGIN_ARGS funcDefArgs FUNC_DEF_END_ARGS funcReturnType COLON endls function_body
     {
       struct AstNode *funcDefNode = CreateBasicNode(atFuncDef, $1, $3, $8); 
       funcDefNode->variableType = $5;
@@ -133,32 +133,32 @@ function_def:
       $$ = funcDefNode;
     }
   ;
-funcArgs:
-  nonVoidFuncArgs { $$ = $1; }
+funcDefArgs:
+  nonVoidFuncDefArgs { $$ = $1; }
   | void { $$ = $1; }
   ;
-nonVoidFuncArgs:
-  nonVoidFuncArg and nonVoidFuncArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
-  | nonVoidFuncArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
+nonVoidFuncDefArgs:
+  nonVoidFuncDefArg and nonVoidFuncDefArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+  | nonVoidFuncDefArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
-nonVoidFuncArg:
+nonVoidFuncDefArg:
   INT_FUNC_ARG id 
     {
-      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncDefArg, $2, NULL, NULL); 
       funcArgNode->variableType = integer;
 
       $$ = funcArgNode;
     }
   | FLOAT_FUNC_ARG id
     {
-      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncDefArg, $2, NULL, NULL); 
       funcArgNode->variableType = floating;
 
       $$ = funcArgNode;
     }
   | STRING_FUNC_ARG id
     {
-      struct AstNode *funcArgNode = CreateBasicNode(atFuncArg, $2, NULL, NULL); 
+      struct AstNode *funcArgNode = CreateBasicNode(atFuncDefArg, $2, NULL, NULL); 
       funcArgNode->variableType = characters;
 
       $$ = funcArgNode;
@@ -193,7 +193,7 @@ body_line:
 assignment:
   exp and ASSIGN id { $$ = CreateBasicNode(atAssignment, $4, $1, NULL); }
   | nonVoidArg ASSIGN id { $$ = CreateBasicNode(atAssignment, $3, $1, NULL); }
-  | id ASSIGN_FUNC id BEGIN_ARGS args 
+  | id ASSIGN_FUNC id BEGIN_ARGS funcCallArgs 
     { 
       struct AstNode *funcCallNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       $$ = CreateBasicNode(atAssignment, $3, funcCallNode, NULL); 
@@ -248,7 +248,7 @@ test_branchs:
     }
   ;
 test_if_branch:
-  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
+  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS funcCallArgs BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
@@ -261,7 +261,7 @@ test_elseIf_branchs:
   | HYPHEN test_elseIf_branch { $$ = CreateBasicNode(atStatementList, $2, NULL, NULL); }
   ;
 test_elseIf_branch:
-  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid endls
+  id BEGIN_CONDITION disjunctive_normal_form_comparisons BEGIN_ARGS funcCallArgs BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $5, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $7, callFuncNode, NULL);
@@ -280,7 +280,7 @@ andComparisons:
   | comparisonId { $$ = $1; }
   ;
 test_else_branch:
-  id BEGIN_ELSE BEGIN_ARGS args BEGIN_RETURN_VAR idOrVoid
+  id BEGIN_ELSE BEGIN_ARGS funcCallArgs BEGIN_RETURN_VAR idOrVoid
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);
@@ -304,7 +304,7 @@ assignmentOrFuncCall:
   | func_call { $$ = $1; }
   ;
 func_call:
-  id BEGIN_ARGS args { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
+  id BEGIN_ARGS funcCallArgs { $$ = CreateBasicNode(atFuncCall, $1, $3, NULL); }
   ;
 print:
   PRINT constant { $$ = CreateBasicNode(atPrint, $2, NULL, NULL); }
@@ -343,12 +343,12 @@ endls:
   ENDL endls
   | ENDL
   ;
-args:
-  nonVoidArgs { $$ = $1; }
+funcCallArgs:
+  nonVoidFuncCallArgs { $$ = $1; }
   | void { $$ = $1; }
   ;
-nonVoidArgs:
-  nonVoidArg and nonVoidArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
+nonVoidFuncCallArgs:
+  nonVoidArg and nonVoidFuncCallArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
   | nonVoidArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
   ;
 nonVoidArg:

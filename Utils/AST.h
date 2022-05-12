@@ -10,7 +10,7 @@ enum AstType
     atVariableDef, atFuncDef,
     atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atWhileLoop, atCompare, atBreak, atReturn, atContinue,
-    atId, atFuncArg, atConstant, atVoid,
+    atId, atFuncDefArg, atConstant, atVoid,
     atAdd, atMinus, atMultiply, atDivide, atPrint
 };
 
