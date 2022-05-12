@@ -5,12 +5,7 @@ void InterpreterError(char* error_msg)
     printf("Error from the interpreter : %s\n", error_msg);
 }
 
-int GetValue(struct AstNode* id, struct ValueHolder* outVal)
-{
-    
-}
-
-void InterpreteAST (struct AstNode* ast)
+int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
 {
     if (ast==NULL)
         return;
@@ -293,6 +288,7 @@ void InterpreteAST (struct AstNode* ast)
         case atAdd:
             fprintf(currentFile, "(");
             InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            va
             fprintf(currentFile, " + ");
             InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
@@ -305,19 +301,151 @@ void InterpreteAST (struct AstNode* ast)
             fprintf(currentFile, ");\n");
             break;
         case atMultiply:
-            fprintf(currentFile, "(");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, " * ");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, ");\n");
+        
+            struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
+            if (value1==NULL)
+            {
+                InterpreterError("Error: extraction of Value1 unsuccessful");
+                return 1;
+            }
+
+            struct ValueHolder *value2=malloc ( sizeof(struct ValueHolder));
+            if (value2==NULL)
+            {
+                free(value1);
+                InterpreterError("Error: extraction of Value1 unsuccessful");
+                return 1;
+            }
+
+            if(InterpreteAST(ast->child1, value1) &&  InterpreteAST(ast->child1, value1))
+            {
+                if(value1->variableType==integer)
+                {
+                    if (value2->variableType==integer)
+                    {
+                        outVal->variableType=integer;
+                        outVal->i = value1->i * value2->i;
+                    }
+                    else if (value2->variableType==floating)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->i * value2->f;
+                    }
+                    else 
+                    {
+                        InterpreterError("Error: variable types incompatible")
+                    }
+                }
+                
+                if(value1->variableType==floating)
+                {
+                    if (value2->variableType==floating)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->f * value2->f;
+                    }
+                    else if (value2->variableType==integer)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->f * value2->i;
+                    }
+                    else 
+                    {
+                        InterpreterError()
+                    }
+                }
+
+
+            }
+            else
+            {
+
+            }
+            
+            free(value1);
+            free(value2);
+
+            return 0;
+
             break;
         case atDivide:
-            fprintf(currentFile, "(");
+             /*repere*/
+            struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
+            if (value1==NULL)
+            {
+                InterpreterError
+                return 1;
+            }
+
+            struct ValueHolder *value2=malloc ( sizeof(struct ValueHolder));
+            if (value2==NULL)
+            {
+                free(value1);
+                InterpreterError
+                return 1;
+            }
+
+            if(InterpreteAST(ast->child1, value1) &&  InterpreteAST(ast->child1, value1))
+            {
+                if(value1->variableType==integer)
+                {
+                    if (value2->variableType==integer)
+                    {
+                        outVal->variableType=integer;
+                        outVal->i = value1->i / value2->i;
+                    }
+                    else if (value2->variableType==floating)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->i / value2->f;
+                        /*est ce quon peut faire un  int /float ? */
+                    }
+                    else 
+                    {
+                        InterpreterError()
+                    }
+                }
+                
+                if(value1->variableType==floating)
+                {
+                    if (value2->variableType==floating)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->f / value2->f;
+                    }
+                    else if (value2->variableType==integer)
+                    {
+                        outVal->variableType=floating;
+                        outVal->f = value1->f / value2->i;
+                    }
+                    else 
+                    {
+                        InterpreterError()
+                    }
+                }
+
+
+            }
+            else
+            {
+                InterpreterError()
+
+            }
+            
+            free(value1);
+            free(value2);
+
+            return 0;
+
+            break;
+
+
+            /*fprintf(currentFile, "(");
             InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, " / ");
             InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, ");\n");
-            break;
+            fprintf(currentFile, ");\n");*/
+            
         case atPrint:
             switch (ast->child1->type)
             {
@@ -328,6 +456,7 @@ void InterpreteAST (struct AstNode* ast)
                             printf("%d", );
                         break;
                         case floating:
+
                             fprintf(currentFile, "printf(\"%%f\\n\",");
                         break;
                         case characters:
