@@ -1,5 +1,5 @@
-#ifndef __DICTIONNARY_H__
-#define __DICTIONNARY_H__
+#ifndef __COMPARISON_DICTIONNARY_H__
+#define __COMPARISON_DICTIONNARY_H__
 
 #include "AST.h"
 

@@ -1,6 +1,5 @@
 #include <stdlib.h>
-
-#include "Dictionnary.h"
+#include "ComparisonDictionnary.h"
 
 // Creates a new dictionnary
 int CreateComparisonsDict(struct Comparisons_Dict** outDict) {
