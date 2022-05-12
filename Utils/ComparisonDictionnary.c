@@ -5,8 +5,7 @@
 int CreateComparisonsDict(struct Comparisons_Dict** outDict) {
     *outDict = malloc(sizeof(struct Comparisons_Dict));
 
-    if (*outDict==NULL)
-    {
+    if (*outDict==NULL) {
         printf("Unable to allocate memory for the dictionnary\n");
         return 1;
     }
@@ -31,8 +30,7 @@ void FreeComparisonsDict(struct Comparisons_Dict *dict) {
 // with the found value stored at out
 int TryFind_ComparisonsDict(struct Comparisons_Dict *dict, int key, struct ComparisonValue **out) 
 {
-    if (dict==NULL)
-    {
+    if (dict==NULL) {
         printf("The dictionnary is empty\n");
         return 1;
     }
@@ -52,22 +50,19 @@ int TryFind_ComparisonsDict(struct Comparisons_Dict *dict, int key, struct Compa
 // Adds an element to the dictionnary and returns 0 if added successfully, 1 otherwise
 int Add_ComparisonsDict(struct Comparisons_Dict **dict, int key, enum ComparatorType comparator, struct AstNode* value1, struct AstNode* value2) 
 {
-    if (dict==NULL)
-    {
+    if (dict==NULL) {
         printf("The dictionnary is empty\n");
         return 1;
     }
     
-    if (TryFind_ComparisonsDict(*dict, key, NULL))
-    {
+    if (TryFind_ComparisonsDict(*dict, key, NULL)) {
         printf("An element with this key already exists in the dictionnary\n");
         return 1;
     }
 
     // Creation of the ComparisonValue element to store in the dictionnary
     struct ComparisonValue* value = malloc(sizeof(struct ComparisonValue));
-    if (value==NULL)
-    {
+    if (value==NULL) {
         printf("Unable to allocate memory for the comparison structure in the dictionnary\n");
         return 1;
     }

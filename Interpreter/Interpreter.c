@@ -1,4 +1,5 @@
 #include "Interpreter.h"
+#include "../Utils/Hash.h"
 
 void InterpreterError(char* error_msg)
 {
@@ -10,7 +11,7 @@ int GetValue(struct AstNode* id, struct ValueHolder* outVal)
     
 }
 
-void InterpreteAST (struct AstNode* ast)
+void InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
 {
     if (ast==NULL)
         return;
@@ -19,14 +20,14 @@ void InterpreteAST (struct AstNode* ast)
     {
         case atRoot:
             //Variables and functions definitions
-            InterpreteAST(ast->child1);
+            InterpreteAST(ast->child1, outVal);
             //Main body of the code
-            InterpreteAST(ast->child2);
+            InterpreteAST(ast->child2, outVal);
 
             break;
         case atStatementList:
-            InterpreteAST(ast->child1);
-            InterpreteAST(ast->child2);
+            InterpreteAST(ast->child1, outVal);
+            InterpreteAST(ast->child2, outVal);
 
             break;
         case atElemList:
@@ -291,11 +292,8 @@ void InterpreteAST (struct AstNode* ast)
              // Nothing to write in C
             break;
         case atAdd:
-            fprintf(currentFile, "(");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, " + ");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, ");\n");
+            
+
             break;
         case atMinus:
             fprintf(currentFile, "(");
@@ -325,27 +323,44 @@ void InterpreteAST (struct AstNode* ast)
                     switch(ast->variableType)
                     {
                         case integer:
-                            printf("%d", );
+                            struct ValueHolder* value = malloc(sizeof(struct ValueHolder));
+                            if (GetValue(ast->child1, value))
+                            {
+                                printf("%d\n", value.i);
+                            }
+                            else
+                            {
+                                InterpreterError("Can't get the value of the integer variable");
+                            }
                         break;
                         case floating:
-                            fprintf(currentFile, "printf(\"%%f\\n\",");
+                            printf("%f\n", );
                         break;
                         case characters:
-                            fprintf(currentFile, "printf(\"%%s\n\",");
+                            printf("%s\n", );
                         break;
                         default:
                             InterpreterError("Not a valid variable type to print");
                         break;
-                    }
-
-                    InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-                    fprintf(currentFile, ");\n");
                     
                     break;
                 case atConstant:
-                    fprintf(currentFile, "printf(\"");
-                    InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-                    fprintf(currentFile, "\");\n");
+                    switch(ast->child1->variableType)
+                    {
+                        case integer:
+                            printf("%d\n", ast->child1->i);
+                        break;
+                        case floating:
+                            printf("%f\n", ast->child1->f);
+                        break;
+                        case characters:
+                            printf("%s\n", ast->child1->s);
+                        break;
+                        default:
+                            InterpreterError("Not a valid constant type to print");
+                        break;
+                    
+                    break;
                     break;
                 default:
                     InterpreterError("The ring gal can't show this type of data");

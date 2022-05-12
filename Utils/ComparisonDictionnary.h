@@ -3,6 +3,7 @@
 
 #include "AST.h"
 
+
 struct ComparisonValue
 {
     enum ComparatorType comparator;
@@ -18,6 +19,7 @@ struct Comparisons_Dict
     struct ComparisonValue *value;
     struct Comparisons_Dict *next;
 };
+
 
 int CreateComparisonsDict(struct Comparisons_Dict** outDict);
 
