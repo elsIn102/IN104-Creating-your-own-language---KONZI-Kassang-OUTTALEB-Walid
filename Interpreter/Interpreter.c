@@ -453,14 +453,49 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal)
                     switch(ast->variableType)
                     {
                         case integer:
-                            printf("%d", );
+                                struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
+                                if (value1==NULL)
+                                    {
+                                        InterpreterError("Error: extraction of Value1 unsuccessful");
+                                        return 1;
+                                    }
+
+                        
+                            outVal->variableType=integer;
+                            if(InterpreteAST(ast->child1, value1))
+                            {OutVal->i=value1->i ;
+                            printf("%d", OutVal->i );}
+                            
+                                
                         break;
                         case floating:
+                                struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
+                                if (value1==NULL)
+                                    {
+                                        InterpreterError("Error: extraction of Value1 unsuccessful");
+                                        return 1;
+                                    }
 
-                            fprintf(currentFile, "printf(\"%%f\\n\",");
+                        
+                            outVal->variableType=integer;
+                            if(InterpreteAST(ast->child1, value1))
+                            {OutVal->f=value1->f ;
+                            printf("%f", OutVal->f );}
                         break;
                         case characters:
-                            fprintf(currentFile, "printf(\"%%s\n\",");
+                            struct ValueHolder *value1=malloc ( sizeof(struct ValueHolder));
+                                if (value1==NULL)
+                                    {
+                                        InterpreterError("Error: extraction of Value1 unsuccessful");
+                                        return 1;
+                                    }
+
+                        
+                            outVal->variableType=characters;
+                            if(InterpreteAST(ast->child1, value1))
+                            {OutVal->s=value1->s;
+                            printf("%s", OutVal->s );}
+                            /*fprintf(currentFile, "printf(\"%%s\n\",");*/
                         break;
                         default:
                             InterpreterError("Not a valid variable type to print");
