@@ -138,8 +138,8 @@ funcDefArgs:
   | void { $$ = $1; }
   ;
 nonVoidFuncDefArgs:
-  nonVoidFuncDefArg and nonVoidFuncDefArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
-  | nonVoidFuncDefArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
+  nonVoidFuncDefArg and nonVoidFuncDefArgs { $$ = CreateBasicNode(atFuncDefArgsList, $1, $3, NULL); }
+  | nonVoidFuncDefArg { $$ = CreateBasicNode(atFuncDefArgsList, $1, NULL, NULL); }
   ;
 nonVoidFuncDefArg:
   INT_FUNC_ARG id 
@@ -348,8 +348,8 @@ funcCallArgs:
   | void { $$ = $1; }
   ;
 nonVoidFuncCallArgs:
-  nonVoidArg and nonVoidFuncCallArgs { $$ = CreateBasicNode(atElemList, $1, $3, NULL); }
-  | nonVoidArg { $$ = CreateBasicNode(atElemList, $1, NULL, NULL); }
+  nonVoidArg and nonVoidFuncCallArgs { $$ = CreateBasicNode(atFuncCallArgList, $1, $3, NULL); }
+  | nonVoidArg { $$ = CreateBasicNode(atFuncCallArgList, $1, NULL, NULL); }
   ;
 nonVoidArg:
   id { $$ = $1; }
