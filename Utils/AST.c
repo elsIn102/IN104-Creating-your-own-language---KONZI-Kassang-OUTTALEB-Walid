@@ -21,7 +21,7 @@ struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, st
 
 struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode* _var1, struct AstNode* _var2, struct AstNode* _whileBranch)
 {
-    struct AstNode *conditionNode = CreateBasicNode(atCompare, _var1, _var2, NULL);
+    struct AstNode *conditionNode = CreateBasicNode(atWhileCompare, _var1, _var2, NULL);
     conditionNode->comparator = _comparator;
 
     return CreateBasicNode(atWhileLoop, conditionNode, _whileBranch, NULL);
