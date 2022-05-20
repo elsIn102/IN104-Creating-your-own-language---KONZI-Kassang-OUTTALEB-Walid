@@ -25,15 +25,6 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
 
             break;
-        case atElemList:
-            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            if (ast->child2!=NULL)
-            {
-                fprintf(currentFile, ", ");
-                TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            }
-
-            break;
         case atLogicalOr:
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
@@ -207,7 +198,7 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, "}\n");
             break;
-        case atCompare:
+        case atWhileCompare:
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             switch (ast->comparator)

@@ -270,12 +270,12 @@ test_elseIf_branch:
     }
   ;
 disjunctive_normal_form_comparisons:
-  disjunctive_normal_form_comparisons COMMA andComparisons 
+  andComparisons COMMA disjunctive_normal_form_comparisons 
     { $$ = CreateBasicNode(atLogicalOr, $1, $3, NULL); }
   | andComparisons { $$ = $1; }
   ;
 andComparisons:
-  andComparisons AND comparisonId
+  comparisonId AND andComparisons
     { $$ = CreateBasicNode(atLogicalAnd, $1, $3, NULL); }
   | comparisonId { $$ = $1; }
   ;

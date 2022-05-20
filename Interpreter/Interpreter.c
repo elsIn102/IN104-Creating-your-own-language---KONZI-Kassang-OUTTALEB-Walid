@@ -3,6 +3,7 @@
 
 #include "Interpreter.h"
 #include "../Utils/Hash.h"
+#include "../Utils/ComparisonDictionnary.h"
 
 void InterpreterError(char* error_msg)
 {
@@ -40,9 +41,13 @@ listOfArgs = a list to memorize the order of the arguments in the function defin
 returnValue = holds a pointer to the value that needs to be assigned by the next call of return (typically during an assignment of a function call).
     Is only modified by atReturn
 
+comparisonDict = dictionnary of the comparisons declared in an if statement
+    Set in atComparisonDeclaration and used in atlogicalAnd
+    Must be passed in atStatementList, atTestBranch and atLogicalOr
+
 */
 
-int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct valueHolder* returnValue) 
+int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct valueHolder* returnValue, struct Comparisons_Dict* comparisonDict) 
 {
     if (ast==NULL)
         return 1;
@@ -69,50 +74,148 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atStatementList:
         {
-            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue);
+            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
 
             if (ast->child1->type == atReturn) // Since every call of return can only be in a function (not a loop, nor an if), this effectively ends the flow of the function when a return is met
                 return a;
             
-            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue);
+            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
 
             return a && b;
             break;
         }
-        case atLogicalOr:
+        case atLogicalOr: // Set outVal->i to 0 if the statement is true, 1 otherwise
+        {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the result of the OR evaluation : outVal is null in atLogicalOr");
+                return 1;
+            }
+
+            struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
+            if (booleanAndHolder1==NULL) {
+                InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalOr");
+                return 1;
+            }
+
+            struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
+            if (booleanAndHolder2==NULL) {
+                InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalOr");
+                FreeValueHolder(booleanAndHolder1);
+                return 1;
+            }
+
+            // Evaluate the boolean value of the left and right expressions
+            if (!(InterpreteAST(ast->child1, booleanAndHolder1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict)
+                    && InterpreteAST(ast->child2, booleanAndHolder2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict))) {
+                InterpreterError("Error while evaluating the left or right expression of the OR comparison");
+                FreeValueHolder(booleanAndHolder1);
+                FreeValueHolder(booleanAndHolder2);
+                return 1;
+            }
+
+            outVal->i = booleanAndHolder1->i || booleanAndHolder2->i;
+
             return 0;
             break;
-        case atLogicalAnd:
+        }
+        case atLogicalAnd: // Set outVal->i to 0 if the statement is true, 1 otherwise
+        {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the result of the AND evaluation : outVal is null in atLogicalAnd");
+                return 1;
+            }
+
+            struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
+            if (booleanAndHolder1==NULL) {
+                InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalAnd");
+                return 1;
+            }
+
+            struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
+            if (booleanAndHolder2==NULL) {
+                InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalAnd");
+                FreeValueHolder(booleanAndHolder1);
+                return 1;
+            }
+
+            // Evaluate the boolean value of the left and right expressions
+            if (!(InterpreteAST(ast->child1, booleanAndHolder1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict)
+                    && InterpreteAST(ast->child2, booleanAndHolder2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict))) {
+                InterpreterError("Error while evaluating the left or right expression of the AND comparison");
+                FreeValueHolder(booleanAndHolder1);
+                FreeValueHolder(booleanAndHolder2);
+                return 1;
+            }
+
+            outVal->i = booleanAndHolder1->i && booleanAndHolder2->i;
+
             return 0;
             break;
+        }
         case atVariableDef:
-            /*switch (ast->variableType)
-            {
-                case integer:
-                    fprintf(inMainFile, "int ");
-                    InterpreteAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %d",ast->i);
+        {
+            struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
+            if (varIdHolder==NULL) {
+                InterpreterError("Can't allocate memory for varIdHolder in atVariableDef");
+                return 1;
+            }
 
+            if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // get the name of the variable
+                struct VariableStruct* varValue = malloc(sizeof(struct VariableStruct));
+                if (varValue==NULL) {
+                    InterpreterError("Can't allocate memory for varValue in atVariableDef");
+                    FreeValueHolder(varIdHolder);
+                    return 1;
+                }
 
-                    break;
+                // Fills the fields of varValue
+                varValue->id = malloc(1 + strlen(varIdHolder->s));
+                strcpy(varValue->id, varIdHolder->s);
 
-                case floating:
-                    fprintf(inMainFile, "float ");
-                    InterpreteAST(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %f",ast->f);
+                varValue->type = ast->variableType;
 
-                    break;
+                switch (ast->variableType)
+                {
+                    case integer:
+                        varValue->i = ast->i;
+                        break;
+                    case floating:
+                        varValue->f = ast->f;
+                        break;
+                    case characters:
+                        varValue->s = malloc(1 + strlen(ast->s));
+                        strcpy(varValue->s, ast->s);
+                        break;
+                    default:
+                        InterpreterError("Cannot define a variable with this type");
+                        FreeValueHolder(varIdHolder);
+                        FreeVariableStruct(varValue);
+                        return 1;
+                        break;
+                }
 
-                case characters:
-
-                    break;
-
-                case noType:
-
-                    break;
-            }*/
+                // Add varValue to the local hashtable if it exists, to the global one otherwise
+                if (!((localSymbolTable!=NULL && Add_Hashtable(localSymbolTable, varValue->s, varValue))
+                    || Add_Hashtable(globalSymbolTable, varValue->s, varValue)))
+                {
+                    InterpreterError("Error when adding the variable to the hashtable (atVariableDef)");
+                    FreeValueHolder(varIdHolder);
+                    FreeVariableStruct(varValue);
+                    return 1;
+                }
+            }
+            else {
+                InterpreterError("Cannot get the Id of the variable in arVariableDef");
+                FreeValueHolder(varIdHolder);
+                return 1;
+            }
+            
+            FreeValueHolder(varIdHolder);
+            return 0;
             break;
+        }
         case atFuncDef:
+        {
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
             if (funcIdHolder==NULL) {
                 InterpreterError("Can't allocate memory for funcIdHolder in atFuncDef");
@@ -201,85 +304,762 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             return 0;
-            break;        
+            break;
+        }
         case atTest:
             {
                 struct Comparisons_Dict* compDict;
-                if (!CreateComparisonsDict(&compDict)) //If it failed to create the dictionnary
-                {
-                    InterpreterError("Unable to create the dictionnary");
+                if (!CreateComparisonsDict(&compDict)) { //If it failed to create the dictionnary
+                    InterpreterError("Unable to create the dictionnary for the tests (atTest)");
+                    return 1;
                 }
-                else
-                {
-                    // Fills the dictionnary with all the comparisons
-                    InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, compDict);
-                    //Writes the if/else_if/else statements using the dicionnary
-                    InterpreteAST(ast->child2, currentFile, mainFile, funcFile, varFile, compDict);
 
+                // Fills the dictionnary with all the comparisons
+                if (!InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
+                    InterpreterError("Error while adding the comparisons to the dictionnary");
                     FreeComparisonsDict(compDict);
+                    return 1;
                 }
 
+                //Interpretes the if/else_if/else statements using the dicionnary
+                if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
+                    InterpreterError("Error in the if/else if/else statement (atTest)");
+                    FreeComparisonsDict(compDict);
+                    return 1;
+                }
+
+                FreeComparisonsDict(compDict);
+                return 0;
                 break;
             }
-        case atComparisonDeclaration:
-            Add_ComparisonsDict(&comparisonsDict, ast->i, ast->comparator, ast->child1, ast->child2);
-            break;
-        case atComparisonId: // Writes the comparison of the two values corresponding to the ID
+        case atComparisonDeclaration: // Adds the comparison to the dictionnary
+        {
+            if (ast->child1->type == integer || ast->child1->type == floating)
             {
-                struct ComparisonValue *comparison;
-                if (!TryFind_ComparisonsDict(comparisonsDict, ast->i, &comparison))
+                if (ast->child2->type != integer || ast->child2->type != floating)
                 {
-                    char* msg;
-                    sprintf(msg, "Unable to find the comparison (match %d) in this dictionnary", ast->i);
-                    InterpreterError(msg);
+                    InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
+                    return 1;
                 }
-                else
-                {
-                    fprintf(currentFile, "(");
-                    InterpreteAST(comparison->value1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-                    switch (ast->comparator)
-                    {
-                        case gtr:
-                            fprintf(currentFile, ">=");
-                            break;
-                        case str_gtr:
-                            fprintf(currentFile, ">");
-                            break;
-                        case neq:
-                            fprintf(currentFile, "!=");
-                            break;
-                        case eq:
-                            fprintf(currentFile, "==");
-                            break;
-                        default:
-                            InterpreterError("Not a valid comparator");
-                            break;
-                    }
-                    InterpreteAST(comparison->value2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-                    fprintf(currentFile, ")");
-                }
-                break;
             }
-        case atTestIfBranch:
-            fprintf(currentFile, "if (");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict); // Writes the boolean test
-            fprintf(currentFile, ") {\n");
-            InterpreteAST(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, "}\n");
+            else if (ast->child1->type == characters)
+            {
+                if (ast->child2->type != characters)
+                {
+                    InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
+                    return 1;
+                }
+            }
+            else {
+                InterpreterError("Impossible to use a variable with no type in a comparison (atComparisonDeclaration)");
+                return 1;
+            }
+
+            if (!Add_ComparisonsDict(&comparisonDict, ast->i, ast->comparator, ast->child1, ast->child2)) {
+                InterpreterError("Could not add the comparison to the dictionnary");
+                return 1;
+            }
+
+            return 0;
             break;
+        }
+        case atComparisonId: // Set outVal->i to 0 if the comparison is true, 1 otherwise
+        {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the result of the comparison : outVal is null in atComparisonId");
+                return 1;
+            }
+
+            struct ComparisonValue *comparison;
+            if (!TryFind_ComparisonsDict(comparisonDict, ast->i, &comparison)) {
+                char* msg;
+                sprintf(msg, "Unable to find the comparison (match %d) in this dictionnary", ast->i);
+                InterpreterError(msg);
+                free(msg);
+                return 1;
+            }
+
+            struct ValueHolder* var1Holder = malloc(sizeof(struct ValueHolder));
+            if (var1Holder==NULL) {
+                InterpreterError("Can't allocate memory for var1Holder in atComparisonId");
+                return 1;
+            }
+
+            struct ValueHolder* var2Holder = malloc(sizeof(struct ValueHolder));
+            if (var2Holder==NULL) {
+                InterpreterError("Can't allocate memory for var2Holder in atComparisonId");
+                FreeValueHolder(var1Holder);
+                return 1;
+            }
+            
+            if (!InterpreteAST(comparison->value1, var1Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)
+                || !InterpreteAST(comparison->value2, var2Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) 
+            {
+                InterpreterError("Error while getting the value of the variables to compara in atComparisonId");
+                FreeValueHolder(var1Holder);
+                FreeValueHolder(var2Holder);
+                return 1;
+            }
+            
+            if (comparison->value1->type == atConstant && comparison->value1->type == atConstant)
+            {
+                switch(var1Holder->variableType) {
+                    case integer:
+                        if (var2Holder->variableType == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->i >= var2Holder->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->i > var2Holder->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->i != var2Holder->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->i == var2Holder->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (var2Holder->variableType == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->i >= var2Holder->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->i > var2Holder->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->i != var2Holder->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->i == var2Holder->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case floating:
+                        if (var2Holder->variableType == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->f >= var2Holder->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->f > var2Holder->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->f != var2Holder->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->f == var2Holder->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (var2Holder->variableType == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->f >= var2Holder->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->f > var2Holder->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->f != var2Holder->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->f == var2Holder->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case characters:
+                        if (var2Holder->variableType == characters) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = strcmp(var1Holder->s, var2Holder->s) >= 0;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = strcmp(var1Holder->s, var2Holder->s) > 0;
+                                    break;
+                                case neq:
+                                    outVal->i = strcmp(var1Holder->s, var2Holder->s) != 0;
+                                    break;
+                                case eq:
+                                    outVal->i = strcmp(var1Holder->s, var2Holder->s) == 0;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    default:
+                        InterpreterError("Imopssible to compare these types of value");
+                        FreeValueHolder(var1Holder);
+                        FreeValueHolder(var2Holder);
+                        return 1;
+                    break;
+                }
+            }
+            else if (ast->child1->type == atId && ast->child2->type == atId)
+            {
+                // Get the values of the variables
+                struct VariableStruct *var1Struct, *var2Struct;
+                // Using the lazy evaluation to first look at local variables
+                if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, var1Struct))
+                        || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, var2Struct))) 
+                {
+                    InterpreterError("No defined variable with this name (atComparisonId)");
+                    FreeValueHolder(var1Holder);
+                    FreeValueHolder(var2Holder);
+                    return 1;
+                }
+
+                switch(var1Struct->type) {
+                    case integer:
+                        if (var2Struct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Struct->i >= var2Struct->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Struct->i > var2Struct->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Struct->i != var2Struct->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Struct->i == var2Struct->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (var2Struct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Struct->i >= var2Struct->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Struct->i > var2Struct->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Struct->i != var2Struct->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Struct->i == var2Struct->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case floating:
+                        if (var2Struct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Struct->f >= var2Struct->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Struct->f > var2Struct->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Struct->f != var2Struct->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Struct->f == var2Struct->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (var2Struct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Struct->f >= var2Struct->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Struct->f > var2Struct->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Struct->f != var2Struct->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Struct->f == var2Struct->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case characters:
+                        if (var2Struct->type == characters) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = strcmp(var1Struct->s, var2Struct->s) >= 0;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = strcmp(var1Struct->s, var2Struct->s) > 0;
+                                    break;
+                                case neq:
+                                    outVal->i = strcmp(var1Struct->s, var2Struct->s) != 0;
+                                    break;
+                                case eq:
+                                    outVal->i = strcmp(var1Struct->s, var2Struct->s) == 0;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    default:
+                        InterpreterError("Imopssible to compare these types of value");
+                        FreeValueHolder(var1Holder);
+                        FreeValueHolder(var2Holder);
+                        return 1;
+                    break;
+                }
+            }
+            else if (ast->child1->type == atConstant && ast->child2->type == atId) // If the first one is a constant, the second a variable
+            {
+                // Get the value of the variable
+                struct VariableStruct* varStruct;
+                // Using the lazy evaluation to first look at local variables
+                if (!TryFind_Hashtable(localSymbolTable, var2Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, varStruct)) {
+                    InterpreterError("No defined variable with this name (atComparisonId)");
+                    FreeValueHolder(var1Holder);
+                    FreeValueHolder(var2Holder);
+                    return 1;
+                }
+
+                switch(var1Holder->variableType) {
+                    case integer:
+                        if (varStruct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->i >= varStruct->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->i > varStruct->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->i != varStruct->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->i == varStruct->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (varStruct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->i >= varStruct->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->i > varStruct->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->i != varStruct->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->i == varStruct->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case floating:
+                        if (varStruct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->f >= varStruct->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->f > varStruct->i;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->f != varStruct->i;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->f == varStruct->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (varStruct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = var1Holder->f >= varStruct->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = var1Holder->f > varStruct->f;
+                                    break;
+                                case neq:
+                                    outVal->i = var1Holder->f != varStruct->f;
+                                    break;
+                                case eq:
+                                    outVal->i = var1Holder->f == varStruct->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case characters:
+                        if (varStruct->type == characters) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = strcmp(var1Holder->s, varStruct->s) >= 0;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = strcmp(var1Holder->s, varStruct->s) > 0;
+                                    break;
+                                case neq:
+                                    outVal->i = strcmp(var1Holder->s, varStruct->s) != 0;
+                                    break;
+                                case eq:
+                                    outVal->i = strcmp(var1Holder->s, varStruct->s) == 0;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    default:
+                        InterpreterError("Imopssible to compare these types of value");
+                        FreeValueHolder(var1Holder);
+                        FreeValueHolder(var2Holder);
+                        return 1;
+                    break;
+                }
+            }
+            else if (ast->child1->type == atId && ast->child2->type == atConstant) // If the first one is a variable, the second a constant
+            {
+                // Get the value of the variable
+                struct VariableStruct* varStruct;
+                // Using the lazy evaluation to first look at local variables
+                if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, varStruct)) {
+                    InterpreterError("No defined variable with this name (atComparisonId)");
+                    FreeValueHolder(var1Holder);
+                    FreeValueHolder(var2Holder);
+                    return 1;
+                }
+
+                switch(var2Holder->variableType) {
+                    case integer:
+                        if (varStruct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = varStruct->i >= var2Holder->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = varStruct->i > var2Holder->i;
+                                    break;
+                                case neq:
+                                    outVal->i = varStruct->i != var2Holder->i;
+                                    break;
+                                case eq:
+                                    outVal->i = varStruct->i == var2Holder->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (varStruct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = varStruct->f >= var2Holder->i;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = varStruct->f > var2Holder->i;
+                                    break;
+                                case neq:
+                                    outVal->i = varStruct->f != var2Holder->i;
+                                    break;
+                                case eq:
+                                    outVal->i = varStruct->f == var2Holder->i;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case floating:
+                        if (varStruct->type == integer) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = varStruct->i >= var2Holder->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = varStruct->i > var2Holder->f;
+                                    break;
+                                case neq:
+                                    outVal->i = varStruct->i != var2Holder->f;
+                                    break;
+                                case eq:
+                                    outVal->i = varStruct->i == var2Holder->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else if (varStruct->type == floating) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = varStruct->f >= var2Holder->f;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = varStruct->f > var2Holder->f;
+                                    break;
+                                case neq:
+                                    outVal->i = varStruct->f != var2Holder->f;
+                                    break;
+                                case eq:
+                                    outVal->i = varStruct->f == var2Holder->f;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    case characters:
+                        if (varStruct->type == characters) {
+                            switch (comparison->comparator) {
+                                case gtr:
+                                    outVal->i = strcmp(varStruct->s, var2Holder->s) >= 0;
+                                    break;
+                                case str_gtr:
+                                    outVal->i = strcmp(varStruct->s, var2Holder->s) > 0;
+                                    break;
+                                case neq:
+                                    outVal->i = strcmp(varStruct->s, var2Holder->s) != 0;
+                                    break;
+                                case eq:
+                                    outVal->i = strcmp(varStruct->s, var2Holder->s) == 0;
+                                    break;
+                                default:
+                                    InterpreterError("Not a valid comparator");
+                                    FreeValueHolder(var1Holder);
+                                    FreeValueHolder(var2Holder);
+                                    return 1;
+                                    break;
+                            }
+                        }
+                        else {
+                            InterpreterError("Impossible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        }
+                    break;
+                    default:
+                        InterpreterError("Imopssible to compare these types of value");
+                        FreeValueHolder(var1Holder);
+                        FreeValueHolder(var2Holder);
+                        return 1;
+                    break;
+                }
+            }
+            else {
+                InterpreterError("Invalid child type in atComparisonId");
+                FreeValueHolder(var1Holder);
+                FreeValueHolder(var2Holder);
+                return 1;
+            }
+
+            FreeValueHolder(var1Holder);
+            FreeValueHolder(var2Holder);
+            return 0;
+            break;
+        }
+        case atTestIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
+        {
+            struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
+            if (booleanValueHolder==NULL) {
+                InterpreterError("Can't allocate memory for booleanValueHolder in atTestIfBranch");
+                return 1;
+            }
+
+            // Evaluate the condition and put the result in booleanValueHolder->i (0 = true, 1 = false)
+            if (InterpreteAST(ast->child1, booleanValueHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict)) {
+                if (booleanValueHolder->i) {
+                    InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
+                    outVal->i = 1;
+                }
+            }
+            else {
+                InterpreterError("Error while evaluating the boolean expression (atTestIfBranch)");
+                FreeValueHolder(booleanValueHolder);
+                return 1;
+            }
+
+            FreeValueHolder(booleanValueHolder);
+            return 0;
+            break;
+        }
         case atTestElseIfBranch:
-            fprintf(currentFile, "else if (");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict); // Writes the boolean test
-            fprintf(currentFile, ") {\n");
-            InterpreteAST(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, "}\n");
+            
+            return 0;
             break;
         case atTestElseBranch:
-            fprintf(currentFile, "else {\n");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, "}\n");
+            
+            return 0;
             break;
         case atAssignment:
+        {
             if (ast->child1->type==atVoid && ast->child2->type==atFuncCall) { // then it's a call of a function without catching the return value
                 InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL);
             }
@@ -441,7 +1221,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atFuncCall:
+        {
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
             if (funcIdHolder==NULL) {
                 InterpreterError("Can't allocate memory for funcIdHolder in atFuncCall");
@@ -493,7 +1275,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atFuncCallArgList: // Get through the listOfArgs and assign their value to the localSymbolTable
+        {
             // Make sure there is at least one more argument
             if (listOfArgs==NULL)
             {
@@ -559,16 +1343,29 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs->next, NULL);
 
             return 0;
-
             break;
+        }
         case atWhileLoop:
-            fprintf(currentFile, "while(");
-            InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, ") {\n");
-            InterpreteAST(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-            fprintf(currentFile, "}\n");
+        {
+            struct ValueHolder* comparisonResult = malloc(sizeof(struct ValueHolder));
+            if (comparisonResult==NULL) {
+                InterpreterError("Can't allocate memory for comparisonResult in atWhileLoop");
+                return 1;
+            }
+
+            // Run the loop as long as comparisonResult->i == 0 ie as long as the condition is true
+            for (InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL); comparisonResult->i; InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            {
+                // Run the body of the loop
+                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL);
+            }
+
+            FreeValueHolder(comparisonResult);
+            return 0;
             break;
+        }
         case atWhileCompare: // returns 0 in outVal if the comparison is true, 1 otherwise
+        {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the comparison : outVal is null in atCompare");
                 return 1;
@@ -589,7 +1386,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 1;
             }
 
-            if (InterpreteAST(ast->child1, var1Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) && InterpreteAST(ast->child2, var2Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) 
+            if (InterpreteAST(ast->child1, var1Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) && InterpreteAST(ast->child2, var2Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) 
             {
                 if (ast->child1->type == atConstant && ast->child2->type == atConstant)
                 {
@@ -741,8 +1538,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Get the values of the variables
                     struct VariableStruct *var1Struct, *var2Struct;
                     // Using the lazy evaluation to first look at local variables
-                    if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, var1Struct)
-                            && !TryFind_Hashtable(localSymbolTable, var2Holder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, var2Struct)) 
+                    if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, var1Struct))
+                            || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, var2Struct))) 
                     {
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
@@ -893,16 +1690,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         break;
                     }
                 }
-                else //Then one is a variable, one is a constant
+                else if (ast->child1->type == atConstant) //Then the first one is a constant, the second one a variable
                 {
-                    if (ast->child1->type != atConstant) { //If the first one is not a constant, switch them
-                        struct ValueHolder* temp;
-                        temp = var1Holder;
-                        var1Holder = var2Holder;
-                        var2Holder = temp;
-                    }
-
-                    // Now the var1Holder is a constant and var2Holder a variable
                     // Get the value of the variable
                     struct VariableStruct* varStruct;
                     // Using the lazy evaluation to first look at local variables
@@ -1056,6 +1845,161 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         break;
                     }
                 }
+                else // If the first one is a variable and the second one a constant
+                {
+                    // Get the value of the variable
+                    struct VariableStruct* varStruct;
+                    // Using the lazy evaluation to first look at local variables
+                    if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, varStruct)) {
+                        InterpreterError("No defined variable with this name (atWhileCompare)");
+                        FreeValueHolder(var1Holder);
+                        FreeValueHolder(var2Holder);
+                        return 1;
+                    }
+
+                    switch(var2Holder->variableType) {
+                        case integer:
+                            if (varStruct->type == integer) {
+                                switch (ast->comparator) {
+                                    case gtr:
+                                        outVal->i = varStruct->i >= var2Holder->i;
+                                        break;
+                                    case str_gtr:
+                                        outVal->i = varStruct->i > var2Holder->i;
+                                        break;
+                                    case neq:
+                                        outVal->i = varStruct->i != var2Holder->i;
+                                        break;
+                                    case eq:
+                                        outVal->i = varStruct->i == var2Holder->i;
+                                        break;
+                                    default:
+                                        InterpreterError("Not a valid comparator");
+                                        FreeValueHolder(var1Holder);
+                                        FreeValueHolder(var2Holder);
+                                        return 1;
+                                        break;
+                                }
+                            }
+                            else if (varStruct->type == floating) {
+                                switch (ast->comparator) {
+                                    case gtr:
+                                        outVal->i = varStruct->f >= var2Holder->i;
+                                        break;
+                                    case str_gtr:
+                                        outVal->i = varStruct->f > var2Holder->i;
+                                        break;
+                                    case neq:
+                                        outVal->i = varStruct->f != var2Holder->i;
+                                        break;
+                                    case eq:
+                                        outVal->i = varStruct->f == var2Holder->i;
+                                        break;
+                                    default:
+                                        InterpreterError("Not a valid comparator");
+                                        FreeValueHolder(var1Holder);
+                                        FreeValueHolder(var2Holder);
+                                        return 1;
+                                        break;
+                                }
+                            }
+                            else {
+                                InterpreterError("Impossible to compare these types of value");
+                                FreeValueHolder(var1Holder);
+                                FreeValueHolder(var2Holder);
+                                return 1;
+                            }
+                        break;
+                        case floating:
+                            if (varStruct->type == integer) {
+                                switch (ast->comparator) {
+                                    case gtr:
+                                        outVal->i = varStruct->i >= var2Holder->f;
+                                        break;
+                                    case str_gtr:
+                                        outVal->i = varStruct->i > var2Holder->f;
+                                        break;
+                                    case neq:
+                                        outVal->i = varStruct->i != var2Holder->f;
+                                        break;
+                                    case eq:
+                                        outVal->i = varStruct->i == var2Holder->f;
+                                        break;
+                                    default:
+                                        InterpreterError("Not a valid comparator");
+                                        FreeValueHolder(var1Holder);
+                                        FreeValueHolder(var2Holder);
+                                        return 1;
+                                        break;
+                                }
+                            }
+                            else if (varStruct->type == floating) {
+                                switch (ast->comparator) {
+                                    case gtr:
+                                        outVal->i = varStruct->f >= var2Holder->f;
+                                        break;
+                                    case str_gtr:
+                                        outVal->i = varStruct->f > var2Holder->f;
+                                        break;
+                                    case neq:
+                                        outVal->i = varStruct->f != var2Holder->f;
+                                        break;
+                                    case eq:
+                                        outVal->i = varStruct->f == var2Holder->f;
+                                        break;
+                                    default:
+                                        InterpreterError("Not a valid comparator");
+                                        FreeValueHolder(var1Holder);
+                                        FreeValueHolder(var2Holder);
+                                        return 1;
+                                        break;
+                                }
+                            }
+                            else {
+                                InterpreterError("Impossible to compare these types of value");
+                                FreeValueHolder(var1Holder);
+                                FreeValueHolder(var2Holder);
+                                return 1;
+                            }
+                        break;
+                        case characters:
+                            if (varStruct->type == characters) {
+                                switch (ast->comparator) {
+                                    case gtr:
+                                        outVal->i = strcmp(varStruct->s, var2Holder->s) >= 0;
+                                        break;
+                                    case str_gtr:
+                                        outVal->i = strcmp(varStruct->s, var2Holder->s) > 0;
+                                        break;
+                                    case neq:
+                                        outVal->i = strcmp(varStruct->s, var2Holder->s) != 0;
+                                        break;
+                                    case eq:
+                                        outVal->i = strcmp(varStruct->s, var2Holder->s) == 0;
+                                        break;
+                                    default:
+                                        InterpreterError("Not a valid comparator");
+                                        FreeValueHolder(var1Holder);
+                                        FreeValueHolder(var2Holder);
+                                        return 1;
+                                        break;
+                                }
+                            }
+                            else {
+                                InterpreterError("Impossible to compare these types of value");
+                                FreeValueHolder(var1Holder);
+                                FreeValueHolder(var2Holder);
+                                return 1;
+                            }
+                        break;
+                        default:
+                            InterpreterError("Imopssible to compare these types of value");
+                            FreeValueHolder(var1Holder);
+                            FreeValueHolder(var2Holder);
+                            return 1;
+                        break;
+                    }
+                }
             }
             else {
                 InterpreterError("Could not get the value of the variables to compare (atWhileCompare)");
@@ -1069,23 +2013,27 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atBreak:
             // Need to implement
+            return 0;
             break;
         case atReturn: // Assign the return value. The end of the flow is done in atStatementList since it is the only place where a return can exist
+        {
             if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // If could not evaluate the id or constant to return
                 InterpreterError("Could not get the value to return");
                 return 1;
             }
 
             return 0;
-
             break;
+        }
         case atContinue:
             // Need to implement
             return 0;
             break;
         case atId: // assigns outVal with the name of the variable or function
+        {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the Id : outVal is null in atId");
                 return 1;
@@ -1099,7 +2047,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atFuncDefArgsList: // Add the arguments to the hashtable argsTable and return the list of arguments in listOfArgs
+        {
             // Add the argument to argsTable and fill the value of the head of listOfArgs
             if (InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs, NULL))
             {
@@ -1128,7 +2078,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atFuncDefArg: // Add the argument to argsTable and set it in listOfArgs
+        {
             struct ValueHolder* argId = malloc(sizeof(struct ValueHolder));
             if (argId==NULL) {
                 InterpreterError("Can't allocate memory for argId in atFuncDefArg");
@@ -1196,7 +2148,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
             
             break;
+        }
         case atConstant:
+        {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the constant : outVal is null in atConstant");
                 return 1;
@@ -1222,12 +2176,15 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             return 0;
             break;
+        }
         case atVoid:
+        {
             if (!outVal==NULL) 
                 outVal->variableType = noType;
 
             return 0;
             break;
+        }
         case atAdd:
         {
             if (outVal==NULL) {
@@ -1581,6 +2538,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             break;
         }
         case atPrint:
+        {
             // Used to get the value of the variaiable in child1 (the variable to print)
             struct ValueHolder *valueToPrint = malloc(sizeof(struct ValueHolder));
             if (valueToPrint==NULL) {
@@ -1643,6 +2601,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             FreeValueHolder(valueToPrint);
             return 0;
             break;
+        }
         default:
             InterpreterError("Node not valid");
             return 1;
