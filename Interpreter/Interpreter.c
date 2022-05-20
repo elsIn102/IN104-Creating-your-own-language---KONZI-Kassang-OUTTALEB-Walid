@@ -4,6 +4,7 @@
 #include "Interpreter.h"
 #include "../Utils/Hash.h"
 #include "../Utils/ComparisonDictionnary.h"
+#include "../Utils/SymbolTableData.h"
 
 void InterpreterError(char* error_msg)
 {
@@ -50,7 +51,7 @@ comparisonDict = dictionnary of the comparisons declared in an if statement
 int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct valueHolder* returnValue, struct Comparisons_Dict* comparisonDict) 
 {
     if (ast==NULL)
-        return 1;
+        return 0;
     
     switch (ast->type)
     {
@@ -59,7 +60,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct HashStruct* _globalSymbolTable = NULL;
             if (!Create_Hashtable(&globalSymbolTable)) {
                 InterpreterError("Error while creating the global symbol table in atRoot");
-                return 1;
+                return 0;
             }
 
             //Variables and functions definitions
@@ -79,7 +80,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 struct ValueHolder* stopEvaluationsHolder = malloc(sizeof(struct ValueHolder));
                 if (stopEvaluationsHolder==NULL) {
                     InterpreterError("Can't allocate memory for stopEvaluationsHolder in atStatementList");
-                    return 1;
+                    return 0;
                 }
 
                 stopEvaluationsHolder->i = 0; // Don't stop by default
@@ -102,24 +103,24 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
             break;
         }
-        case atLogicalOr: // Set outVal->i to 0 if the statement is true, 1 otherwise
+        case atLogicalOr: // Set outVal->i to 1 if the statement is true, 0 otherwise
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the result of the OR evaluation : outVal is null in atLogicalOr");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
             if (booleanAndHolder1==NULL) {
                 InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalOr");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
             if (booleanAndHolder2==NULL) {
                 InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalOr");
                 FreeValueHolder(booleanAndHolder1);
-                return 1;
+                return 0;
             }
 
             // Evaluate the boolean value of the left and right expressions
@@ -128,32 +129,32 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 InterpreterError("Error while evaluating the left or right expression of the OR comparison");
                 FreeValueHolder(booleanAndHolder1);
                 FreeValueHolder(booleanAndHolder2);
-                return 1;
+                return 0;
             }
 
             outVal->i = booleanAndHolder1->i || booleanAndHolder2->i;
 
-            return 0;
+            return 1;
             break;
         }
-        case atLogicalAnd: // Set outVal->i to 0 if the statement is true, 1 otherwise
+        case atLogicalAnd: // Set outVal->i to 1 if the statement is true, 0 otherwise
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the result of the AND evaluation : outVal is null in atLogicalAnd");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
             if (booleanAndHolder1==NULL) {
                 InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalAnd");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
             if (booleanAndHolder2==NULL) {
                 InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalAnd");
                 FreeValueHolder(booleanAndHolder1);
-                return 1;
+                return 0;
             }
 
             // Evaluate the boolean value of the left and right expressions
@@ -162,12 +163,12 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 InterpreterError("Error while evaluating the left or right expression of the AND comparison");
                 FreeValueHolder(booleanAndHolder1);
                 FreeValueHolder(booleanAndHolder2);
-                return 1;
+                return 0;
             }
 
             outVal->i = booleanAndHolder1->i && booleanAndHolder2->i;
 
-            return 0;
+            return 1;
             break;
         }
         case atVariableDef:
@@ -175,7 +176,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
             if (varIdHolder==NULL) {
                 InterpreterError("Can't allocate memory for varIdHolder in atVariableDef");
-                return 1;
+                return 0;
             }
 
             if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // get the name of the variable
@@ -183,7 +184,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (varValue==NULL) {
                     InterpreterError("Can't allocate memory for varValue in atVariableDef");
                     FreeValueHolder(varIdHolder);
-                    return 1;
+                    return 0;
                 }
 
                 // Fills the fields of varValue
@@ -208,7 +209,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Cannot define a variable with this type");
                         FreeValueHolder(varIdHolder);
                         FreeVariableStruct(varValue);
-                        return 1;
+                        return 0;
                         break;
                 }
 
@@ -219,17 +220,17 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     InterpreterError("Error when adding the variable to the hashtable (atVariableDef)");
                     FreeValueHolder(varIdHolder);
                     FreeVariableStruct(varValue);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Cannot get the Id of the variable in arVariableDef");
                 FreeValueHolder(varIdHolder);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(varIdHolder);
-            return 0;
+            return 1;
             break;
         }
         case atFuncDef:
@@ -237,7 +238,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
             if (funcIdHolder==NULL) {
                 InterpreterError("Can't allocate memory for funcIdHolder in atFuncDef");
-                return 1;
+                return 0;
             }
 
             if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) // get the name of the function
@@ -246,13 +247,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 {
                     InterpreterError("Not a valid function Id");
                     FreeValueHolder(funcIdHolder);
-                    return 1;
+                    return 0;
                 }
 
                 if (TryFind_Hashtable(globalSymbolTable, funcIdHolder->s, NULL)) { //If a function or a variable with this name has already been defined
                     InterpreterError("A function or a variable with this name already exists");
                     FreeValueHolder(funcIdHolder);
-                    return 1;
+                    return 0;
                 }
 
                 struct HashStruct* _argsTable = NULL;
@@ -264,7 +265,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     if (funcIdHolder==NULL) {
                         InterpreterError("Can't allocate memory for _argsTable in atFuncDef");
                         FreeValueHolder(funcIdHolder);
-                        return 1;
+                        return 0;
                     }
 
                     _listOfArgs = malloc(sizeof(struct ArgList));
@@ -272,7 +273,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Can't allocate memory for _listOfArgs in atFuncDef");
                         FreeValueHolder(funcIdHolder);
                         Free_Hashtable(_argsTable);
-                        return 1;
+                        return 0;
                     }
 
                     if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, _argsTable, _listOfArgs, NULL, NULL)) // If all arguments of the function has not been defined successfully
@@ -281,7 +282,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         FreeValueHolder(funcIdHolder);
                         Free_Hashtable(_argsTable);
                         FreeArgList(_listOfArgs);
-                        return 1;
+                        return 0;
                     }
                 }
 
@@ -292,7 +293,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     FreeValueHolder(funcIdHolder);
                     Free_Hashtable(_argsTable);
                     FreeArgList(_listOfArgs);
-                    return 1;
+                    return 0;
                 }
 
                 // Set the parameters of the function
@@ -311,17 +312,17 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     Free_Hashtable(_argsTable);
                     FreeArgList(_listOfArgs);
                     FreeVariableStruct(funcStruct);
-                    return 1;
+                    return 0;
                 }
 
             }
             else { // If couldn't get the name of the function
                 InterpreterError("Can't get the Id of the function in atFuncDef");
                 FreeValueHolder(funcIdHolder);
-                return 1;
+                return 0;
             }
 
-            return 0;
+            return 1;
             break;
         }
         case atTest:
@@ -329,25 +330,25 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 struct Comparisons_Dict* compDict;
                 if (!CreateComparisonsDict(&compDict)) { //If it failed to create the dictionnary
                     InterpreterError("Unable to create the dictionnary for the tests (atTest)");
-                    return 1;
+                    return 0;
                 }
 
                 // Fills the dictionnary with all the comparisons
                 if (!InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
                     InterpreterError("Error while adding the comparisons to the dictionnary");
                     FreeComparisonsDict(compDict);
-                    return 1;
+                    return 0;
                 }
 
                 //Interpretes the if/else_if/else statements using the dicionnary
                 if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
                     InterpreterError("Error in the if/else if/else statement (atTest)");
                     FreeComparisonsDict(compDict);
-                    return 1;
+                    return 0;
                 }
 
                 FreeComparisonsDict(compDict);
-                return 0;
+                return 1;
                 break;
             }
         case atComparisonDeclaration: // Adds the comparison to the dictionnary
@@ -357,7 +358,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (ast->child2->type != integer || ast->child2->type != floating)
                 {
                     InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
-                    return 1;
+                    return 0;
                 }
             }
             else if (ast->child1->type == characters)
@@ -365,27 +366,27 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (ast->child2->type != characters)
                 {
                     InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Impossible to use a variable with no type in a comparison (atComparisonDeclaration)");
-                return 1;
+                return 0;
             }
 
             if (!Add_ComparisonsDict(&comparisonDict, ast->i, ast->comparator, ast->child1, ast->child2)) {
                 InterpreterError("Could not add the comparison to the dictionnary");
-                return 1;
+                return 0;
             }
 
-            return 0;
+            return 1;
             break;
         }
-        case atComparisonId: // Set outVal->i to 0 if the comparison is true, 1 otherwise
+        case atComparisonId: // Set outVal->i to 1 if the comparison is true, 0 otherwise
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the result of the comparison : outVal is null in atComparisonId");
-                return 1;
+                return 0;
             }
 
             struct ComparisonValue *comparison;
@@ -394,20 +395,20 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 sprintf(msg, "Unable to find the comparison (match %d) in this dictionnary", ast->i);
                 InterpreterError(msg);
                 free(msg);
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* var1Holder = malloc(sizeof(struct ValueHolder));
             if (var1Holder==NULL) {
                 InterpreterError("Can't allocate memory for var1Holder in atComparisonId");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* var2Holder = malloc(sizeof(struct ValueHolder));
             if (var2Holder==NULL) {
                 InterpreterError("Can't allocate memory for var2Holder in atComparisonId");
                 FreeValueHolder(var1Holder);
-                return 1;
+                return 0;
             }
             
             if (!InterpreteAST(comparison->value1, var1Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)
@@ -416,7 +417,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 InterpreterError("Error while getting the value of the variables to compara in atComparisonId");
                 FreeValueHolder(var1Holder);
                 FreeValueHolder(var2Holder);
-                return 1;
+                return 0;
             }
             
             if (comparison->value1->type == atConstant && comparison->value1->type == atConstant)
@@ -441,7 +442,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -463,7 +464,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -471,7 +472,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case floating:
@@ -493,7 +494,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -515,7 +516,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -523,7 +524,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case characters:
@@ -545,7 +546,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -553,14 +554,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     default:
                         InterpreterError("Imopssible to compare these types of value");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     break;
                 }
             }
@@ -575,7 +576,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
                     FreeValueHolder(var2Holder);
-                    return 1;
+                    return 0;
                 }
 
                 switch(var1Struct->type) {
@@ -598,7 +599,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -620,7 +621,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -628,7 +629,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case floating:
@@ -650,7 +651,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -672,7 +673,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -680,7 +681,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case characters:
@@ -702,7 +703,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -710,14 +711,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     default:
                         InterpreterError("Imopssible to compare these types of value");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     break;
                 }
             }
@@ -730,7 +731,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
                     FreeValueHolder(var2Holder);
-                    return 1;
+                    return 0;
                 }
 
                 switch(var1Holder->variableType) {
@@ -753,7 +754,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -775,7 +776,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -783,7 +784,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case floating:
@@ -805,7 +806,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -827,7 +828,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -835,7 +836,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case characters:
@@ -857,7 +858,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -865,14 +866,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     default:
                         InterpreterError("Imopssible to compare these types of value");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     break;
                 }
             }
@@ -885,7 +886,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
                     FreeValueHolder(var2Holder);
-                    return 1;
+                    return 0;
                 }
 
                 switch(var2Holder->variableType) {
@@ -908,7 +909,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -930,7 +931,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -938,7 +939,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case floating:
@@ -960,7 +961,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -982,7 +983,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -990,7 +991,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     case characters:
@@ -1012,7 +1013,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Not a valid comparator");
                                     FreeValueHolder(var1Holder);
                                     FreeValueHolder(var2Holder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
                         }
@@ -1020,14 +1021,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             InterpreterError("Impossible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         }
                     break;
                     default:
                         InterpreterError("Imopssible to compare these types of value");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     break;
                 }
             }
@@ -1035,12 +1036,12 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 InterpreterError("Invalid child type in atComparisonId");
                 FreeValueHolder(var1Holder);
                 FreeValueHolder(var2Holder);
-                return 1;
+                return 0;
             }
 
             FreeValueHolder(var1Holder);
             FreeValueHolder(var2Holder);
-            return 0;
+            return 1;
             break;
         }
         case atTestIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
@@ -1048,7 +1049,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
             if (booleanValueHolder==NULL) {
                 InterpreterError("Can't allocate memory for booleanValueHolder in atTestIfBranch");
-                return 1;
+                return 0;
             }
 
             // Evaluate the condition and put the result in booleanValueHolder->i (0 = true, 1 = false)
@@ -1061,11 +1062,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             else {
                 InterpreterError("Error while evaluating the boolean expression (atTestIfBranch)");
                 FreeValueHolder(booleanValueHolder);
-                return 1;
+                return 0;
             }
 
             FreeValueHolder(booleanValueHolder);
-            return 0;
+            return 1;
             break;
         }
         case atTestElseIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
@@ -1073,7 +1074,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
             if (booleanValueHolder==NULL) {
                 InterpreterError("Can't allocate memory for booleanValueHolder in atTestElseIfBranch");
-                return 1;
+                return 0;
             }
 
             // Evaluate the condition and put the result in booleanValueHolder->i (0 = true, 1 = false)
@@ -1086,17 +1087,17 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             else {
                 InterpreterError("Error while evaluating the boolean expression (atTestElseIfBranch)");
                 FreeValueHolder(booleanValueHolder);
-                return 1;
+                return 0;
             }
 
             FreeValueHolder(booleanValueHolder);
-            return 0;
+            return 1;
             break;
         }
         case atTestElseBranch:
         {
             InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
-            return 0;
+            return 1;
             break;
         }
         case atAssignment:
@@ -1109,7 +1110,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
                 if (varIdHolder==NULL) {
                     InterpreterError("Can't allocate memory for varIdHolder in atAssignment");
-                    return 1;
+                    return 0;
                 }
                 
                 // Get the id of the variable to assign to
@@ -1118,7 +1119,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     if (varIdHolder->variableType != characters) {
                         InterpreterError("Not a valid variable Id in atAssignment");
                         FreeValueHolder(varIdHolder);
-                        return 1;
+                        return 0;
                     }
 
                     // Get a pointer to the variable to assign to in the hashtable
@@ -1127,7 +1128,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     if (!TryFind_Hashtable(localSymbolTable, varIdHolder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, varIdHolder->s, varStruct)) {
                         InterpreterError("No defined variable with this name (atAssignment)");
                         FreeValueHolder(varIdHolder);
-                        return 1;
+                        return 0;
                     }
 
                     // If it's an assignation from another variable
@@ -1136,7 +1137,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         if (var2IdHolder==NULL) {
                             InterpreterError("Can't allocate memory for var2IdHolder in atAssignment");
                             FreeValueHolder(varIdHolder);
-                            return 1;
+                            return 0;
                         }
 
                         // Get the id of the variable
@@ -1145,7 +1146,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Not a valid variable Id (2) in atAssignment");
                                 FreeValueHolder(varIdHolder);
                                 FreeValueHolder(var2IdHolder);
-                                return 1;
+                                return 0;
                             }
 
                             // Get a pointer to the variable
@@ -1155,7 +1156,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("No defined variable with this name (2) (atAssignment)");
                                 FreeValueHolder(varIdHolder);
                                 FreeValueHolder(var2IdHolder);
-                                return 1;
+                                return 0;
                             }
 
                             // Check that the type of the 2 variables is matching
@@ -1163,7 +1164,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("These variables don't have the same type : impossible to assign");
                                 FreeValueHolder(varIdHolder);
                                 FreeValueHolder(var2IdHolder);
-                                return 1;
+                                return 0;
                             }
 
                             // Change the value of the variable
@@ -1185,19 +1186,19 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Impossible to assign this type of variable (atAssignment)");
                                     FreeValueHolder(varIdHolder);
                                     FreeValueHolder(var2IdHolder);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
 
                             FreeValueHolder(varIdHolder);
                             FreeValueHolder(var2IdHolder);
-                            return 0;
+                            return 1;
                         }
                         else { 
                             InterpreterError("Can't get the id of the variable to assign in atAssignment");
                             FreeValueHolder(varIdHolder);
                             FreeValueHolder(var2IdHolder);
-                            return 1;
+                            return 0;
                         }
                     }
                     else { // if it's not an assignment from another variable
@@ -1205,7 +1206,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         if (valToAssign==NULL) {
                             InterpreterError("Can't allocate memory for valToAssign in atAssignment");
                             FreeValueHolder(varIdHolder);
-                            return 1;
+                            return 0;
                         }
 
                         // Get the value to assign
@@ -1215,7 +1216,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Type of the variable not matching the type of the other hand of the assignment");
                                 FreeValueHolder(varIdHolder);
                                 FreeValueHolder(valToAssign);
-                                return 1;
+                                return 0;
                             }
 
                             // Change the value of the variable
@@ -1237,30 +1238,30 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     InterpreterError("Impossible to assign this type of variable (atAssignment)");
                                     FreeValueHolder(varIdHolder);
                                     FreeValueHolder(valToAssign);
-                                    return 1;
+                                    return 0;
                                     break;
                             }
 
                             FreeValueHolder(varIdHolder);
                             FreeValueHolder(valToAssign);
-                            return 0;
+                            return 1;
                         }
                         else {
                             InterpreterError("Error while evaluating the left side of the assignment");
                             FreeValueHolder(varIdHolder);
                             FreeValueHolder(valToAssign);
-                            return 1;
+                            return 0;
                         }
                     }
                 }
                 else { 
                     InterpreterError("Can't get the id of the variable to assign to in atAssignment");
                     FreeValueHolder(varIdHolder);
-                    return 1;
+                    return 0;
                 }
             }
 
-            return 0;
+            return 1;
             break;
         }
         case atFuncCall:
@@ -1268,7 +1269,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
             if (funcIdHolder==NULL) {
                 InterpreterError("Can't allocate memory for funcIdHolder in atFuncCall");
-                return 1;
+                return 0;
             }
 
             if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) //If manages to retrieve the id of the function
@@ -1276,7 +1277,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (funcIdHolder->variableType != characters) {
                     InterpreterError("Not a valid function Id");
                     FreeValueHolder(funcIdHolder);
-                    return 1;
+                    return 0;
                 }
 
                 struct VariableStruct* funcVarStruct;
@@ -1289,7 +1290,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         {
                             InterpreterError("Could not assign all the arguments for the call of the function");
                             FreeValueHolder(funcIdHolder);
-                            return 1;
+                            return 0;
                         }
                     }
 
@@ -1297,24 +1298,24 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     if (!InterpreteAST(funcVarStruct->functionBody, NULL, globalSymbolTable, funcVarStruct->argumentsTable, NULL, NULL, outVal, NULL)) { // If an error occurred while calling the function
                         InterpreterError("Error while calling the function");
                         FreeValueHolder(funcIdHolder);
-                        return 1;
+                        return 0;
                     }
                 }
                 else {
                     InterpreterError("Call of an undefined function");
                     FreeValueHolder(funcIdHolder);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Can't get the id of the function in atFuncCall");
                 FreeValueHolder(funcIdHolder);
-                return 1;
+                return 0;
             }
 
             FreeValueHolder(funcIdHolder);
 
-            return 0;
+            return 1;
             break;
         }
         case atFuncCallArgList: // Get through the listOfArgs and assign their value to the localSymbolTable
@@ -1323,7 +1324,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             if (listOfArgs==NULL)
             {
                 InterpreterError("Not enought arguments in the function call");
-                return 1;
+                return 0;
             }
 
             // Get a pointer to the argument wich value we need to assign in the local hashtable
@@ -1334,7 +1335,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 struct ValueHolder* argVal = malloc(sizeof(struct ValueHolder));
                 if (argVal==NULL) {
                     InterpreterError("Can't allocate memory for argVal in atFuncCallArgList");
-                    return 1;
+                    return 0;
                 }
 
                 if (InterpreteAST(ast->child1, argVal, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
@@ -1343,7 +1344,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     {
                         InterpreterError("The type of the argument doesn't match the type defined in the function");
                         FreeValueHolder(argVal);
-                        return 1;
+                        return 0;
                     }
 
                     switch (argVal->variableType)
@@ -1364,26 +1365,26 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         default:
                             InterpreterError("Not a valid argument type");
                             FreeValueHolder(argVal);
-                            return 1;
+                            return 0;
                             break;
                     }
                 }
                 else {
                     InterpreterError("Could not get the value of the argument");
                     FreeValueHolder(argVal);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Failed to find the function argument in the hashtable : atFuncDef might not define the argumentsTable and the argumentsList properly");
-                return 1;
+                return 0;
             }
 
             // Get the rest of the arguments to be added to the localSymbolTable
             if (ast->child2!=NULL)
                 return InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs->next, NULL, NULL);
 
-            return 0;
+            return 1;
             break;
         }
         case atWhileLoop:
@@ -1391,7 +1392,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* comparisonResult = malloc(sizeof(struct ValueHolder));
             if (comparisonResult==NULL) {
                 InterpreterError("Can't allocate memory for comparisonResult in atWhileLoop");
-                return 1;
+                return 0;
             }
 
             // Run the loop as long as comparisonResult->i == 0 ie as long as the condition is true
@@ -1402,14 +1403,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             FreeValueHolder(comparisonResult);
-            return 0;
+            return 1;
             break;
         }
-        case atWhileCompare: // returns 0 in outVal if the comparison is true, 1 otherwise
+        case atWhileCompare: // returns 1 in outVal->i if the comparison is true, 0 otherwise
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the comparison : outVal is null in atCompare");
-                return 1;
+                return 0;
             }
 
             outVal->variableType = integer;
@@ -1417,14 +1418,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* var1Holder = malloc(sizeof(struct ValueHolder));
             if (var1Holder==NULL) {
                 InterpreterError("Can't allocate memory for var1Holder in atCompare");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder* var2Holder = malloc(sizeof(struct ValueHolder));
             if (var2Holder==NULL) {
                 InterpreterError("Can't allocate memory for var2Holder in atCompare");
                 FreeValueHolder(var1Holder);
-                return 1;
+                return 0;
             }
 
             if (InterpreteAST(ast->child1, var1Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) && InterpreteAST(ast->child2, var2Holder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) 
@@ -1451,7 +1452,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1473,7 +1474,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1481,7 +1482,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case floating:
@@ -1503,7 +1504,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1525,7 +1526,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1533,7 +1534,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case characters:
@@ -1555,7 +1556,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1563,14 +1564,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         default:
                             InterpreterError("Imopssible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -1585,7 +1586,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     }
 
                     switch(var1Struct->type) {
@@ -1608,7 +1609,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1630,7 +1631,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1638,7 +1639,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case floating:
@@ -1660,7 +1661,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1682,7 +1683,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1690,7 +1691,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case characters:
@@ -1712,7 +1713,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1720,14 +1721,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         default:
                             InterpreterError("Imopssible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -1740,7 +1741,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     }
 
                     switch(var1Holder->variableType) {
@@ -1763,7 +1764,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1785,7 +1786,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1793,7 +1794,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case floating:
@@ -1815,7 +1816,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1837,7 +1838,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1845,7 +1846,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case characters:
@@ -1867,7 +1868,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1875,14 +1876,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         default:
                             InterpreterError("Imopssible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -1895,7 +1896,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
-                        return 1;
+                        return 0;
                     }
 
                     switch(var2Holder->variableType) {
@@ -1918,7 +1919,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1940,7 +1941,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1948,7 +1949,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case floating:
@@ -1970,7 +1971,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -1992,7 +1993,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -2000,7 +2001,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         case characters:
@@ -2022,7 +2023,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                         InterpreterError("Not a valid comparator");
                                         FreeValueHolder(var1Holder);
                                         FreeValueHolder(var2Holder);
-                                        return 1;
+                                        return 0;
                                         break;
                                 }
                             }
@@ -2030,14 +2031,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 InterpreterError("Impossible to compare these types of value");
                                 FreeValueHolder(var1Holder);
                                 FreeValueHolder(var2Holder);
-                                return 1;
+                                return 0;
                             }
                         break;
                         default:
                             InterpreterError("Imopssible to compare these types of value");
                             FreeValueHolder(var1Holder);
                             FreeValueHolder(var2Holder);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -2046,38 +2047,38 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 InterpreterError("Could not get the value of the variables to compare (atWhileCompare)");
                 FreeValueHolder(var1Holder);
                 FreeValueHolder(var2Holder);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(var1Holder);
             FreeValueHolder(var2Holder);
 
-            return 0;
+            return 1;
             break;
         }
         case atBreak:
             // Need to implement
-            return 0;
+            return 1;
             break;
         case atReturn: // Assign the return value. The end of the flow is done in atStatementList since it is the only place where a return can exist
         {
             if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // If could not evaluate the id or constant to return
                 InterpreterError("Could not get the value to return");
-                return 1;
+                return 0;
             }
 
-            return 0;
+            return 1;
             break;
         }
         case atContinue:
             // Need to implement
-            return 0;
+            return 1;
             break;
-        case atId: // assigns outVal with the name of the variable or function
+        case atId: // assigns outVal->s with the name of the variable or function
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the Id : outVal is null in atId");
-                return 1;
+                return 0;
             }
 
             if (outVal->s!=NULL)
@@ -2086,7 +2087,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             outVal->s = malloc(1 + strlen(ast->s));
             strcpy(outVal->s, ast->s);
 
-            return 0;
+            return 1;
             break;
         }
         case atFuncDefArgsList: // Add the arguments to the hashtable argsTable and return the list of arguments in listOfArgs
@@ -2099,14 +2100,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     struct ArgList* newArg = malloc(sizeof(struct ArgList));
                     if (newArg==NULL) {
                         InterpreterError("Can't allocate memory for newArg in atFuncDefArgsList");
-                        return 1;
+                        return 0;
                     }
 
                     // Fill the tail of the list with the arguments
                     if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, argsTable, newArg, NULL, NULL)) {
                         InterpreterError("Can't allocate memory for newArg in atFuncDefArgsList");
                         FreeArgList(newArg);
-                        return 1;
+                        return 0;
                     }
                     // The head points towards the tail
                     listOfArgs->next = newArg;
@@ -2114,10 +2115,10 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
             else {
                 InterpreterError("Error while defining the argument of the function");
-                return 1;
+                return 0;
             }
 
-            return 0;
+            return 1;
             break;
         }
         case atFuncDefArg: // Add the argument to argsTable and set it in listOfArgs
@@ -2125,7 +2126,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder* argId = malloc(sizeof(struct ValueHolder));
             if (argId==NULL) {
                 InterpreterError("Can't allocate memory for argId in atFuncDefArg");
-                return 1;
+                return 0;
             }
 
             // Get the Id of the argument
@@ -2135,7 +2136,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (argId->variableType!=characters) {
                     InterpreterError("Error while building the AST : the first child of atFuncDefArg is not an atId");
                     FreeValueHolder(argId);
-                    return 1;
+                    return 0;
                 }
 
                 // Add the argument to the argsTable of the function
@@ -2143,7 +2144,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 if (argValue==NULL) {
                     InterpreterError("Can't allocate memory for argValue in atFuncDefArg");
                     FreeValueHolder(argId);
-                    return 1;
+                    return 0;
                 }
 
                 argValue->id = argId->s;
@@ -2155,13 +2156,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("An argument with this name has already been defined");
                         FreeValueHolder(argId);
                         FreeVariableStruct(argValue);
-                        return 1;
+                        return 0;
                         break;
                     case 1:
                         InterpreterError("Could not add the argument to the hashtable");
                         FreeValueHolder(argId);
                         FreeVariableStruct(argValue);
-                        return 1;
+                        return 0;
                         break;
                     case 0:
                         // Set the argument from listOfArgs
@@ -2171,21 +2172,21 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         listOfArgs->id = malloc(1 + strlen(argId->s));
                         strcpy(listOfArgs->id, argId->s);
 
-                        return 0;
+                        return 1;
 
                         break;
                     default:
                         InterpreterError("Unknown error while trying to add the argument to the hashtable");
                         FreeValueHolder(argId);
                         FreeVariableStruct(argValue);
-                        return 1;
+                        return 0;
                         break;
                 }
             }
             else {
                 InterpreterError("Could not get the id of the argument");
                 FreeValueHolder(argId);
-                return 1;
+                return 0;
             }
             
             break;
@@ -2194,7 +2195,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the constant : outVal is null in atConstant");
-                return 1;
+                return 0;
             }
 
             outVal->variableType = ast->variableType;
@@ -2211,11 +2212,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     break;
                 default:
                     InterpreterError("Not a valid constant type");
-                    return 1;
+                    return 0;
                     break;
             }
 
-            return 0;
+            return 1;
             break;
         }
         case atVoid:
@@ -2223,27 +2224,27 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             if (!outVal==NULL) 
                 outVal->variableType = noType;
 
-            return 0;
+            return 1;
             break;
         }
         case atAdd:
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the addition : outVal is null in atAdd");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atAdd");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
             if (value2==NULL) {
                 FreeValueHolder(value1);
                 InterpreterError("Can't allocate memory for value2 in atAdd");
-                return 1;
+                return 0;
             }
 
             // If managed to get the value of both members of the operation
@@ -2266,7 +2267,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else if(value2->variableType==floating)
@@ -2283,7 +2284,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else if(value2->variableType==characters && value2->variableType==characters)
@@ -2301,20 +2302,20 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     InterpreterError("Can't add these types of data");
                     FreeValueHolder(value1);
                     FreeValueHolder(value2);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Could not get the value of the two members of the addition");
                 FreeValueHolder(value1);
                 FreeValueHolder(value2);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(value1);
             FreeValueHolder(value2);
 
-            return 0;
+            return 1;
 
             break;
         }
@@ -2322,20 +2323,20 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the substraction : outVal is null in atMinus");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atMinus");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
             if (value2==NULL) {
                 FreeValueHolder(value1);
                 InterpreterError("Can't allocate memory for value2 in atMinus");
-                return 1;
+                return 0;
             }
 
             // If managed to get the value of both members of the operation
@@ -2358,7 +2359,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else if(value2->variableType==floating)
@@ -2375,47 +2376,47 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else {
                     InterpreterError("Can't substract these types of data");
                     FreeValueHolder(value1);
                     FreeValueHolder(value2);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Could not get the value of the two members of the substraction");
                 FreeValueHolder(value1);
                 FreeValueHolder(value2);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(value1);
             FreeValueHolder(value2);
 
-            return 0;
+            return 1;
             break;
         }
         case atMultiply:
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the multiplication : outVal is null in atMultiply");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atMultiply");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
             if (value2==NULL) {
                 FreeValueHolder(value1);
                 InterpreterError("Can't allocate memory for value2 in atMultiply");
-                return 1;
+                return 0;
             }
 
             // If managed to get the value of both members of the operation
@@ -2438,7 +2439,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else if(value2->variableType==floating)
@@ -2455,47 +2456,47 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else {
                     InterpreterError("Can't multiply these types of data");
                     FreeValueHolder(value1);
                     FreeValueHolder(value2);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Could not get the value of the two members of the multiplication");
                 FreeValueHolder(value1);
                 FreeValueHolder(value2);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(value1);
             FreeValueHolder(value2);
 
-            return 0;
+            return 1;
             break;
         }
         case atDivide:
         {
             if (outVal==NULL) {
                 InterpreterError("No pointer to hold the value of the division : outVal is null in atDivide");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atDivide");
-                return 1;
+                return 0;
             }
 
             struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
             if (value2==NULL) {
                 FreeValueHolder(value1);
                 InterpreterError("Can't allocate memory for value2 in atDivide");
-                return 1;
+                return 0;
             }
 
             // If managed to get the value of both members of the operation
@@ -2508,7 +2509,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Division by 0");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                     else if (value1->variableType==integer)
                     {
@@ -2532,7 +2533,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else if(value2->variableType==floating)
@@ -2543,7 +2544,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Division by 0");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                     else if (value1->variableType==integer) {
                         outVal->f = value1->i / value2->f;
@@ -2555,27 +2556,27 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         InterpreterError("Incompatible variable types");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
-                        return 1;
+                        return 0;
                     }
                 }
                 else {
                     InterpreterError("Can't divide these types of data");
                     FreeValueHolder(value1);
                     FreeValueHolder(value2);
-                    return 1;
+                    return 0;
                 }
             }
             else {
                 InterpreterError("Could not get the value of the two members of the division");
                 FreeValueHolder(value1);
                 FreeValueHolder(value2);
-                return 1;
+                return 0;
             }
             
             FreeValueHolder(value1);
             FreeValueHolder(value2);
 
-            return 0;
+            return 1;
             break;
         }
         case atPrint:
@@ -2584,7 +2585,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             struct ValueHolder *valueToPrint = malloc(sizeof(struct ValueHolder));
             if (valueToPrint==NULL) {
                 InterpreterError("Can't allocate memory for valueToPrint in atPrint");
-                return 1;
+                return 0;
             }
 
             if(InterpreteAST(ast->child1, valueToPrint, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // If managed to retrieve the value
@@ -2602,7 +2603,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         default:
                             InterpreterError("Not a valid variable type to print");
                             FreeValueHolder(valueToPrint);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -2612,7 +2613,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     if (!TryFind_Hashtable(localSymbolTable, valueToPrint->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, valueToPrint->s, varStruct)) {
                         InterpreterError("No defined variable with this name (atPrint)");
                         FreeValueHolder(valueToPrint);
-                        return 1;
+                        return 0;
                     }
 
                     switch(varStruct->type) {
@@ -2628,7 +2629,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         default:
                             InterpreterError("Not a valid variable type to print");
                             FreeValueHolder(valueToPrint);
-                            return 1;
+                            return 0;
                         break;
                     }
                 }
@@ -2636,16 +2637,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             else {
                 InterpreterError("Could not get the value to print");
                 FreeValueHolder(valueToPrint);
-                return 1;
+                return 0;
             }
 
             FreeValueHolder(valueToPrint);
-            return 0;
+            return 1;
             break;
         }
         default:
             InterpreterError("Node not valid");
-            return 1;
+            return 0;
         break;
     }
 }

@@ -2,6 +2,9 @@
 #define __INTERPRETER_H__
 
 #include "../Utils/AST.h"
+#include "../Utils/ComparisonDictionnary.h"
+#include "../Utils/Hash.h"
+#include "../Utils/SymbolTableData.h"
 
 struct ValueHolder 
 {

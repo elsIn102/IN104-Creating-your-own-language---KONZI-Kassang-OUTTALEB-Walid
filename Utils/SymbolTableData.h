@@ -38,8 +38,8 @@ void FreeVariableStruct (struct VariableStruct* varStruct);
 void FreeArgList(struct ArgList* argList);
 
 // This function steps through the list of VariableStruct to try and find one with an id matching the key
-// If it found one, *ouVal will point to it and the function will return 0
-// Otherwise the function returns 1
+// If it found one, *ouVal will point to it and the function will return 1
+// Otherwise the function returns 0
 int TryFind_VariableStruct (struct VariableStruct* varStruct, char* key, struct VariableStruct** outVal);
 
 #endif

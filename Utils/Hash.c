@@ -19,14 +19,14 @@ int Create_Hashtable (struct HashStruct** hashtable) {
 
 	if (hash==NULL) {
         printf("Unable to allocate memory for the hash struct\n");
-		return 1;
+		return 0;
     }
 
     hash->table = malloc(sizeof(struct VariableStruct*) * HASH_TABLE_SIZE);
 
 	if(hash->table== NULL) {
         printf("Unable to allocate memory for the hashtable\n");
-		return 1;
+		return 0;
 	}
 
 	for(int i = 0; i<HASH_TABLE_SIZE; i++)
@@ -35,7 +35,7 @@ int Create_Hashtable (struct HashStruct** hashtable) {
 	hash->size = HASH_TABLE_SIZE;
 
     *hashtable = hash;
-	return 0;
+	return 1;
 }
 
 // Free the memory used by the hashtable
@@ -52,23 +52,21 @@ void Free_Hashtable (struct HashStruct* hashtable) {
 }
 
 // Tries to find an element with the key in the hashtable
-// Returns 0 if an element was found and foundValue points to that element
-// Returns 1 otherwise
+// Returns 1 if an element was found and foundValue points to that element
+// Returns 0 otherwise
 int TryFind_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruct** foundValue) {
     if (hashtable==NULL) {
         printf("Can't find a key in a null hashtable\n");
-        return 1;
+        return 0;
     }
 
     unsigned long pos = djb2_hash(key) % hashtable->size;
-    if (!TryFind_VariableStruct(hashtable->table[pos], key, foundValue))
-        return 1;
 
-    return 0;
+    return TryFind_VariableStruct(hashtable->table[pos], key, foundValue);
 }
 
 // This function adds a key/value pair to the table if the key doesn't already exist
-// It returns 0 if the pair was added, 1 if there was an error and 2 if the key already existed in the hashtable
+// It returns 1 if the pair was added, 0 if there was an error and 2 if the key already existed in the hashtable
 int Add_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruct* value) {
     if (hashtable==NULL) {
         printf("Can't add a key/value pair to a null hashtable\n");

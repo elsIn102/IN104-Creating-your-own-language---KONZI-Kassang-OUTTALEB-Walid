@@ -5,6 +5,7 @@
 #include "../Parser-Bison/UF-C.tab.h"
 #include "../Utils/ComparisonDictionnary.h"
 #include "../Translator/Translator.h"
+#include "../Interpreter/Interpreter.h"
 
 // Flex: file to read from
 extern FILE *yyin;
@@ -102,18 +103,23 @@ int main(int argc, char* argv[])
     free(outFileName);
 
 
-    /************* Translating the AST into the output file ***************/
+    /******** Translating the AST into the output file and closing it *********/
 
-    if (TranslateAST (ast, outFile))
+    if (!TranslateAST (ast, outFile))
         printf("Error while translating the AST\n");
     
-    // We don't need the AST anymore
-    FreeAST(ast);
-
-
-    /********************* Closing the outpur file **********************/
 
     fclose(outFile);
+
+
+    /************************ Interpreting the AST *************************/
+
+    if (!InterpreteAST(ast, NULL, NULL, NULL, NULL, NULL, NULL, NULL))
+        printf("Error while interpreting the AST\n");
+
+        
+    // We don't need the AST anymore
+    FreeAST(ast);
 
     return 0;
 }

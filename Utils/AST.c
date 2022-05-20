@@ -7,7 +7,7 @@ struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, st
     struct AstNode* node = (struct AstNode*) malloc(sizeof (struct AstNode));
     if (node==NULL)
     {
-        printf("Memory error\n");
+        printf("Memory error : cannot allocate memory to a new AST node\n");
         exit(1); //Closes all pointers, opened files, ... and exits the program with error 2
     }
 

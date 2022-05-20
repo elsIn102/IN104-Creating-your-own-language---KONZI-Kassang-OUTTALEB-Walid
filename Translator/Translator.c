@@ -387,7 +387,7 @@ int TranslateAST (struct AstNode* ast, FILE* outFile)
     {
         printf("Can't create the temporary main file\n");
         FreeAST(ast);
-        return 1;
+        return 0;
     }
 
     FILE* funcFile = fopen(FUNC_TEMP_NAME, "w+");
@@ -396,7 +396,7 @@ int TranslateAST (struct AstNode* ast, FILE* outFile)
         printf("Can't create the temporary function file\n");
         fclose(mainFile);
         FreeAST(ast);
-        return 1;
+        return 0;
     }
 
     FILE* varFile = fopen(VAR_TEMP_NAME, "w+");
@@ -406,7 +406,7 @@ int TranslateAST (struct AstNode* ast, FILE* outFile)
         fclose(mainFile);
         fclose(funcFile);
         FreeAST(ast);
-        return 1;
+        return 0;
     }
 
     // Fill the mainFile, funcFile and varFile according to the AST
@@ -430,6 +430,6 @@ int TranslateAST (struct AstNode* ast, FILE* outFile)
         printf("Can't delete the main temporary file\n");
     */
    
-    return 0;
+    return 1;
     
 }
