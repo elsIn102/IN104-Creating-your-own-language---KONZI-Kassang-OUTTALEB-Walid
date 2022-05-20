@@ -63,9 +63,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             //Variables and functions definitions
-            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, NULL, NULL, NULL, NULL);
+            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, NULL, NULL, NULL, NULL, NULL);
             //Main body of the code
-            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, NULL, NULL, NULL, NULL);
+            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, NULL, NULL, NULL, NULL, NULL);
 
             Free_Hashtable(_globalSymbolTable);
 
@@ -74,14 +74,32 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atStatementList:
         {
-            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
+            if (ast->child1->type == atTestIfBranch || ast->child1->type == atTestElseIfBranch) 
+            {
+                struct ValueHolder* stopEvaluationsHolder = malloc(sizeof(struct ValueHolder));
+                if (stopEvaluationsHolder==NULL) {
+                    InterpreterError("Can't allocate memory for stopEvaluationsHolder in atStatementList");
+                    return 1;
+                }
 
-            if (ast->child1->type == atReturn) // Since every call of return can only be in a function (not a loop, nor an if), this effectively ends the flow of the function when a return is met
+                stopEvaluationsHolder->i = 0; // Don't stop by default
+
+                int a = InterpreteAST(ast->child1, stopEvaluationsHolder, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
+
+                if (!stopEvaluationsHolder->i) // If the if/else if/else statement has not been realized
+                    return a && InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
+                
                 return a;
-            
-            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
+            }
+            else if (ast->child1->type == atReturn) { // Since every call of return can only be in a function (not a loop, nor an if), not calling the second child effectively ends the flow of the function when a return is met
+                return InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
+            }
+            else {
+                int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);                
+                int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
 
-            return a && b;
+                return a && b;
+            }
             break;
         }
         case atLogicalOr: // Set outVal->i to 0 if the statement is true, 1 otherwise
@@ -160,7 +178,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 1;
             }
 
-            if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // get the name of the variable
+            if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // get the name of the variable
                 struct VariableStruct* varValue = malloc(sizeof(struct VariableStruct));
                 if (varValue==NULL) {
                     InterpreterError("Can't allocate memory for varValue in atVariableDef");
@@ -222,7 +240,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 1;
             }
 
-            if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) // get the name of the function
+            if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) // get the name of the function
             {
                 if (funcIdHolder->variableType != characters)
                 {
@@ -257,7 +275,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         return 1;
                     }
 
-                    if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, _argsTable, _listOfArgs, NULL)) // If all arguments of the function has not been defined successfully
+                    if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, _argsTable, _listOfArgs, NULL, NULL)) // If all arguments of the function has not been defined successfully
                     {
                         InterpreterError("Error while defining the arguments during the function definition");
                         FreeValueHolder(funcIdHolder);
@@ -1035,7 +1053,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             // Evaluate the condition and put the result in booleanValueHolder->i (0 = true, 1 = false)
             if (InterpreteAST(ast->child1, booleanValueHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict)) {
-                if (booleanValueHolder->i) {
+                if (booleanValueHolder->i) { // If the comparison is true, interprete the branch
                     InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
                     outVal->i = 1;
                 }
@@ -1050,18 +1068,41 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             return 0;
             break;
         }
-        case atTestElseIfBranch:
-            
+        case atTestElseIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
+        {
+            struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
+            if (booleanValueHolder==NULL) {
+                InterpreterError("Can't allocate memory for booleanValueHolder in atTestElseIfBranch");
+                return 1;
+            }
+
+            // Evaluate the condition and put the result in booleanValueHolder->i (0 = true, 1 = false)
+            if (InterpreteAST(ast->child1, booleanValueHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, comparisonDict)) {
+                if (booleanValueHolder->i) { // If the comparison is true, interprete the branch
+                    InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
+                    outVal->i = 1;
+                }
+            }
+            else {
+                InterpreterError("Error while evaluating the boolean expression (atTestElseIfBranch)");
+                FreeValueHolder(booleanValueHolder);
+                return 1;
+            }
+
+            FreeValueHolder(booleanValueHolder);
             return 0;
             break;
+        }
         case atTestElseBranch:
-            
+        {
+            InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
             return 0;
             break;
+        }
         case atAssignment:
         {
             if (ast->child1->type==atVoid && ast->child2->type==atFuncCall) { // then it's a call of a function without catching the return value
-                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL);
+                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
             }
             else
             {
@@ -1072,7 +1113,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
                 
                 // Get the id of the variable to assign to
-                if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) 
+                if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) 
                 {
                     if (varIdHolder->variableType != characters) {
                         InterpreterError("Not a valid variable Id in atAssignment");
@@ -1099,7 +1140,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         }
 
                         // Get the id of the variable
-                        if (InterpreteAST(ast->child2, var2IdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) {
+                        if (InterpreteAST(ast->child2, var2IdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) {
                             if (var2IdHolder->variableType != characters) {
                                 InterpreterError("Not a valid variable Id (2) in atAssignment");
                                 FreeValueHolder(varIdHolder);
@@ -1168,7 +1209,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         }
 
                         // Get the value to assign
-                        if (InterpreteAST(ast->child2, valToAssign, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) {
+                        if (InterpreteAST(ast->child2, valToAssign, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) {
                             // Check that the type of the variable and the valToAssign is matching
                             if (varStruct->type != valToAssign->variableType) {
                                 InterpreterError("Type of the variable not matching the type of the other hand of the assignment");
@@ -1230,7 +1271,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 1;
             }
 
-            if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) //If manages to retrieve the id of the function
+            if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) //If manages to retrieve the id of the function
             {
                 if (funcIdHolder->variableType != characters) {
                     InterpreterError("Not a valid function Id");
@@ -1244,7 +1285,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Fill the table of local arguments (argsTable) with the values used to call the function
                     if (ast->child2->type != atVoid)
                     {
-                        if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, funcVarStruct->argumentsTable, funcVarStruct->argumentsList, NULL))
+                        if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, funcVarStruct->argumentsTable, funcVarStruct->argumentsList, NULL, NULL))
                         {
                             InterpreterError("Could not assign all the arguments for the call of the function");
                             FreeValueHolder(funcIdHolder);
@@ -1253,7 +1294,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     }
 
                     // Call the function and return the output value
-                    if (!InterpreteAST(funcVarStruct->functionBody, NULL, globalSymbolTable, funcVarStruct->argumentsTable, NULL, NULL, outVal)) { // If an error occurred while calling the function
+                    if (!InterpreteAST(funcVarStruct->functionBody, NULL, globalSymbolTable, funcVarStruct->argumentsTable, NULL, NULL, outVal, NULL)) { // If an error occurred while calling the function
                         InterpreterError("Error while calling the function");
                         FreeValueHolder(funcIdHolder);
                         return 1;
@@ -1296,7 +1337,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     return 1;
                 }
 
-                if (InterpreteAST(ast->child1, argVal, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+                if (InterpreteAST(ast->child1, argVal, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
                 {
                     if (argVal->variableType != foundArg->type)
                     {
@@ -1340,7 +1381,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             // Get the rest of the arguments to be added to the localSymbolTable
             if (ast->child2!=NULL)
-                return InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs->next, NULL);
+                return InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs->next, NULL, NULL);
 
             return 0;
             break;
@@ -1354,10 +1395,10 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // Run the loop as long as comparisonResult->i == 0 ie as long as the condition is true
-            for (InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL); comparisonResult->i; InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            for (InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL); comparisonResult->i; InterpreteAST(ast->child1, comparisonResult, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 // Run the body of the loop
-                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL);
+                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL);
             }
 
             FreeValueHolder(comparisonResult);
@@ -2020,7 +2061,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             break;
         case atReturn: // Assign the return value. The end of the flow is done in atStatementList since it is the only place where a return can exist
         {
-            if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // If could not evaluate the id or constant to return
+            if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // If could not evaluate the id or constant to return
                 InterpreterError("Could not get the value to return");
                 return 1;
             }
@@ -2051,7 +2092,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         case atFuncDefArgsList: // Add the arguments to the hashtable argsTable and return the list of arguments in listOfArgs
         {
             // Add the argument to argsTable and fill the value of the head of listOfArgs
-            if (InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs, NULL))
+            if (InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, argsTable, listOfArgs, NULL, NULL))
             {
                 if (ast->child2!=NULL) { // if there is another argument to define
                     // Create the next element in the list of arguments
@@ -2062,7 +2103,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     }
 
                     // Fill the tail of the list with the arguments
-                    if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, argsTable, newArg, NULL)) {
+                    if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, argsTable, newArg, NULL, NULL)) {
                         InterpreterError("Can't allocate memory for newArg in atFuncDefArgsList");
                         FreeArgList(newArg);
                         return 1;
@@ -2088,7 +2129,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // Get the Id of the argument
-            if (InterpreteAST(ast->child1, argId, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            if (InterpreteAST(ast->child1, argId, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 // Make sure what we got is really an id
                 if (argId->variableType!=characters) {
@@ -2206,8 +2247,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -2298,8 +2339,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -2378,8 +2419,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -2458,8 +2499,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -2546,7 +2587,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 1;
             }
 
-            if(InterpreteAST(ast->child1, valueToPrint, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // If managed to retrieve the value
+            if(InterpreteAST(ast->child1, valueToPrint, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // If managed to retrieve the value
                 if (ast->child1->type == atConstant) {
                     switch(valueToPrint->variableType) {
                         case integer:
