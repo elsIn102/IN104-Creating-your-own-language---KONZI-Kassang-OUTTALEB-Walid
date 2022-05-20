@@ -36,12 +36,18 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             return a && b;
             break;
         }
-        case atStatementList: ;
+        case atStatementList:
+        {
             int a = InterpreteAST(ast->child1, outVal);
+
+            if (ast->child1->type == atReturn) // Since every call of return can only be in a function (not a loop, nor an if), this effectively ends the flow of the function when a return is met
+                return a;
+            
             int b = InterpreteAST(ast->child2, outVal);
 
             return a && b;
             break;
+        }
         case atElemList:
             InterpreteAST(ast->child1);
             if (ast->child2!=NULL)
@@ -66,7 +72,94 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             fprintf(currentFile, ")");
             break;
         case atFuncDef:
+            struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
+            if (funcIdHolder==NULL) {
+                InterpreterError("Can't allocate memory for funcIdHolder in atFuncDef");
+                return 1;
+            }
 
+            if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) // get the name of the function
+            {
+                if (funcIdHolder->variableType != characters)
+                {
+                    InterpreterError("Not a valid function Id");
+                    FreeValueHolder(funcIdHolder);
+                    return 1;
+                }
+
+                if (TryFind_Hashtable(globalSymbolTable, funcIdHolder->s, NULL)) { //If a function or a variable with this name has already been defined
+                    InterpreterError("A function or a variable with this name already exists");
+                    FreeValueHolder(funcIdHolder);
+                    return 1;
+                }
+
+                struct HashStruct* _argsTable = NULL;
+                struct ArgList* _listOfArgs = NULL;
+
+                if (ast->child2->type != atVoid) // If the function requires arguments, fill the list and table
+                {
+                    _argsTable = malloc(sizeof(struct HashStruct));
+                    if (funcIdHolder==NULL) {
+                        InterpreterError("Can't allocate memory for _argsTable in atFuncDef");
+                        FreeValueHolder(funcIdHolder);
+                        return 1;
+                    }
+
+                    _listOfArgs = malloc(sizeof(struct ArgList));
+                    if (_listOfArgs==NULL) {
+                        InterpreterError("Can't allocate memory for _listOfArgs in atFuncDef");
+                        FreeValueHolder(funcIdHolder);
+                        Free_Hashtable(_argsTable);
+                        return 1;
+                    }
+
+                    if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, _argsTable, _listOfArgs, NULL)) // If all arguments of the function has not been defined successfully
+                    {
+                        InterpreterError("Error while defining the arguments during the function definition");
+                        FreeValueHolder(funcIdHolder);
+                        Free_Hashtable(_argsTable);
+                        FreeArgList(_listOfArgs);
+                        return 1;
+                    }
+                }
+
+                // Create the structure of the function that will be stored in the global symbol table
+                struct VariableStruct* funcStruct = malloc(sizeof(struct VariableStruct));
+                if (funcStruct==NULL) {
+                    InterpreterError("Can't allocate memory for funcStruct in atFuncDef");
+                    FreeValueHolder(funcIdHolder);
+                    Free_Hashtable(_argsTable);
+                    FreeArgList(_listOfArgs);
+                    return 1;
+                }
+
+                // Set the parameters of the function
+                funcStruct->s = malloc(1 + strlen(funcIdHolder->s));
+                strcpy(funcStruct->s, funcIdHolder->s);
+
+                funcStruct->argumentsTable = _argsTable;
+                funcStruct->argumentsList = _listOfArgs;
+                funcStruct->type = ast->variableType; //Return type of the function
+                funcStruct->functionBody = ast->child3;
+
+                // Add the function to the global symbol table
+                if (!Add_Hashtable(globalSymbolTable, funcIdHolder->s, funcStruct)) {
+                    InterpreterError("Error while adding the function to the global symbol table");
+                    FreeValueHolder(funcIdHolder);
+                    Free_Hashtable(_argsTable);
+                    FreeArgList(_listOfArgs);
+                    FreeVariableStruct(funcStruct);
+                    return 1;
+                }
+
+            }
+            else { // If couldn't get the name of the function
+                InterpreterError("Can't get the Id of the function in atFuncDef");
+                FreeValueHolder(funcIdHolder);
+                return 1;
+            }
+
+            return 0;
             break;
         case atVariableDef:
             /*switch (ast->variableType)
@@ -190,7 +283,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         case atFuncCall:
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
             if (funcIdHolder==NULL) {
-                InterpreterError("Can't allocate memory for funcValueHolder in atFuncCall");
+                InterpreterError("Can't allocate memory for funcIdHolder in atFuncCall");
                 return 1;
             }
 
@@ -237,7 +330,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
             }
             else {
-                InterpreterError("Can't get the id of the function");
+                InterpreterError("Can't get the id of the function in atFuncCall");
                 FreeValueHolder(funcIdHolder);
                 return 1;
             }
@@ -353,18 +446,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         case atBreak:
             fprintf(currentFile, "break;\n");
             break;
-        case atReturn:
-            if (returnValue==NULL)
-            {
+        case atReturn: // Assign the return value. The end of the flow is done in atStatementList since it is the only place where a return can exist
+            if (returnValue==NULL) {
                 InterpreterError("Return called outside of a function");
                 return 1;
             }
 
-            if(InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue))
-            {
-                // Get out of the function
-            }
-            else {
+            if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue)) {
                 InterpreterError("Could not get the value to return");
                 return 1;
             }
