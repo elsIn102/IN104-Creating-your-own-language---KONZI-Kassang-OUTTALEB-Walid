@@ -1,6 +1,18 @@
 #include <stdlib.h>
 #include "SymbolTableData.h"
 
+void FreeArgList(struct ArgList* argList) {
+    if (argList==NULL)
+        return;
+
+    if (argList->id!=NULL)
+        free(argList->id);
+
+    FreeArgList(argList->next);
+
+    free(argList);
+}
+
 // Free the memory used by a VariableStruct
 void FreeVariableStruct (struct VariableStruct* varStruct) {
     if (varStruct==NULL)
@@ -13,6 +25,11 @@ void FreeVariableStruct (struct VariableStruct* varStruct) {
     
     if (varStruct->id!=NULL)
         free(varStruct->id);
+    
+    FreeArgList(varStruct->argumentsList);
+    Free_Hashtable(varStruct->argumentsTable);
+
+    // functionBody will be freed with the ast (to avoid a double free)
 
     free(varStruct);
 }

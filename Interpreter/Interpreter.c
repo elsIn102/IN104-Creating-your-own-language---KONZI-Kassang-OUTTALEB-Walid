@@ -19,6 +19,29 @@ void FreeValueHolder (struct ValueHolder* value) {
     free(value);
 }
 
+/*
+
+ast = the node of the AST to interpret
+
+outVal = will hold the return value of the interpreted node
+
+globalSymbolTable = a symbol table with all the global variables and functions
+
+localSymbolTable = a symbol table for all the variables defined inside a function (local variables)
+
+argsTable = symbol table holding the arguments of a function. 
+    It is filled with the arguments name and type at func def and their value is assigned in atFuncCall
+    But the function is called with this table as the localSymbolTable : it is only a temporary table deleted after the function call
+    It is only used in atFuncDefArg types, to fill the values of the arguments with the values of the local or global variables
+
+listOfArgs = a list to memorize the order of the arguments in the function definition, in order to keep this order during function call
+    Used in atFuncDefArgsList, atFuncDefArg and atFuncCallArgsList 
+
+returnValue = holds a pointer to the value that needs to be assigned by the next call of return (typically during an assignment of a function call).
+    Is only modified by atReturn
+
+*/
+
 int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct valueHolder* returnValue) 
 {
     if (ast==NULL)
@@ -28,22 +51,30 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
     {
         case atRoot:
         {
+            struct HashStruct* _globalSymbolTable = NULL;
+            if (!Create_Hashtable(&globalSymbolTable)) {
+                InterpreterError("Error while creating the global symbol table in atRoot");
+                return 1;
+            }
+
             //Variables and functions definitions
-            int a = InterpreteAST(ast->child1, outVal);
+            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, NULL, NULL, NULL, NULL);
             //Main body of the code
-            int b = InterpreteAST(ast->child2, outVal);
+            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, NULL, NULL, NULL, NULL);
+
+            Free_Hashtable(_globalSymbolTable);
 
             return a && b;
             break;
         }
         case atStatementList:
         {
-            int a = InterpreteAST(ast->child1, outVal);
+            int a = InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue);
 
             if (ast->child1->type == atReturn) // Since every call of return can only be in a function (not a loop, nor an if), this effectively ends the flow of the function when a return is met
                 return a;
             
-            int b = InterpreteAST(ast->child2, outVal);
+            int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue);
 
             return a && b;
             break;
@@ -266,19 +297,166 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             fprintf(currentFile, "}\n");
             break;
         case atAssignment:
-            if (ast->child1->type==atVoid && ast->child2->type==atFuncCall) // then it's a call of a function without catching the return value
-            {
-                InterpreteAST(ast->child2, valToAssign, globalSymbolTable, localSymbolTable, NULL, NULL);
+            if (ast->child1->type==atVoid && ast->child2->type==atFuncCall) { // then it's a call of a function without catching the return value
+                InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL);
             }
             else
             {
-                InterpreteAST(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
-                fprintf(currentFile, " = ");
-                InterpreteAST(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+                struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
+                if (varIdHolder==NULL) {
+                    InterpreterError("Can't allocate memory for varIdHolder in atAssignment");
+                    return 1;
+                }
                 
-                if (ast->child2->type==atId || ast->child2->type==atConstant) // Beacause atFuncCall already adds a ';' at the end
-                    fprintf(currentFile, ";\n");
+                // Get the id of the variable to assign to
+                if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) 
+                {
+                    if (varIdHolder->variableType != characters) {
+                        InterpreterError("Not a valid variable Id in atAssignment");
+                        FreeValueHolder(varIdHolder);
+                        return 1;
+                    }
+
+                    // Get a pointer to the variable to assign to in the hashtable
+                    struct VariableStruct* varStruct;
+                    // Using the lazy evaluation to first look at local variables
+                    if (!TryFind_Hashtable(localSymbolTable, varIdHolder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, varIdHolder->s, varStruct)) {
+                        InterpreterError("No defined variable with this name (atAssignment)");
+                        FreeValueHolder(varIdHolder);
+                        return 1;
+                    }
+
+                    // If it's an assignation from another variable
+                    if (ast->child2->type == atId) {
+                        struct ValueHolder* var2IdHolder = malloc(sizeof(struct ValueHolder));
+                        if (var2IdHolder==NULL) {
+                            InterpreterError("Can't allocate memory for var2IdHolder in atAssignment");
+                            FreeValueHolder(varIdHolder);
+                            return 1;
+                        }
+
+                        // Get the id of the variable
+                        if (InterpreteAST(ast->child2, var2IdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) {
+                            if (var2IdHolder->variableType != characters) {
+                                InterpreterError("Not a valid variable Id (2) in atAssignment");
+                                FreeValueHolder(varIdHolder);
+                                FreeValueHolder(var2IdHolder);
+                                return 1;
+                            }
+
+                            // Get a pointer to the variable
+                            struct VariableStruct* var2Struct;
+                            // Using the lazy evaluation to first look at local variables
+                            if (!TryFind_Hashtable(localSymbolTable, var2IdHolder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2IdHolder->s, var2Struct)) {
+                                InterpreterError("No defined variable with this name (2) (atAssignment)");
+                                FreeValueHolder(varIdHolder);
+                                FreeValueHolder(var2IdHolder);
+                                return 1;
+                            }
+
+                            // Check that the type of the 2 variables is matching
+                            if (varStruct->type != var2Struct->type) {
+                                InterpreterError("These variables don't have the same type : impossible to assign");
+                                FreeValueHolder(varIdHolder);
+                                FreeValueHolder(var2IdHolder);
+                                return 1;
+                            }
+
+                            // Change the value of the variable
+                            switch (varStruct->type) {
+                                case integer:
+                                    varStruct->i = var2Struct->i;
+                                    break;
+                                case floating:
+                                    varStruct->f = var2Struct->f;
+                                    break;
+                                case characters:
+                                    if (varStruct->s != NULL)
+                                        free(varStruct->s);
+                                    
+                                    varStruct->s = malloc(1 + strlen(var2Struct->s));
+                                    strcpy(varStruct->s, var2Struct->s);
+                                    break;
+                                default:
+                                    InterpreterError("Impossible to assign this type of variable (atAssignment)");
+                                    FreeValueHolder(varIdHolder);
+                                    FreeValueHolder(var2IdHolder);
+                                    return 1;
+                                    break;
+                            }
+
+                            FreeValueHolder(varIdHolder);
+                            FreeValueHolder(var2IdHolder);
+                            return 0;
+                        }
+                        else { 
+                            InterpreterError("Can't get the id of the variable to assign in atAssignment");
+                            FreeValueHolder(varIdHolder);
+                            FreeValueHolder(var2IdHolder);
+                            return 1;
+                        }
+                    }
+                    else { // if it's not an assignment from another variable
+                        struct ValueHolder* valToAssign = malloc(sizeof(struct ValueHolder));
+                        if (valToAssign==NULL) {
+                            InterpreterError("Can't allocate memory for valToAssign in atAssignment");
+                            FreeValueHolder(varIdHolder);
+                            return 1;
+                        }
+
+                        // Get the value to assign
+                        if (InterpreteAST(ast->child2, valToAssign, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) {
+                            // Check that the type of the variable and the valToAssign is matching
+                            if (varStruct->type != valToAssign->variableType) {
+                                InterpreterError("Type of the variable not matching the type of the other hand of the assignment");
+                                FreeValueHolder(varIdHolder);
+                                FreeValueHolder(valToAssign);
+                                return 1;
+                            }
+
+                            // Change the value of the variable
+                            switch (varStruct->type) {
+                                case integer:
+                                    varStruct->i = valToAssign->i;
+                                    break;
+                                case floating:
+                                    varStruct->f = valToAssign->f;
+                                    break;
+                                case characters:
+                                    if (varStruct->s != NULL)
+                                        free(varStruct->s);
+                                    
+                                    varStruct->s = malloc(1 + strlen(valToAssign->s));
+                                    strcpy(varStruct->s, valToAssign->s);
+                                    break;
+                                default:
+                                    InterpreterError("Impossible to assign this type of variable (atAssignment)");
+                                    FreeValueHolder(varIdHolder);
+                                    FreeValueHolder(valToAssign);
+                                    return 1;
+                                    break;
+                            }
+
+                            FreeValueHolder(varIdHolder);
+                            FreeValueHolder(valToAssign);
+                            return 0;
+                        }
+                        else {
+                            InterpreterError("Error while evaluating the left side of the assignment");
+                            FreeValueHolder(varIdHolder);
+                            FreeValueHolder(valToAssign);
+                            return 1;
+                        }
+                    }
+                }
+                else { 
+                    InterpreterError("Can't get the id of the variable to assign to in atAssignment");
+                    FreeValueHolder(varIdHolder);
+                    return 1;
+                }
             }
+
+            return 0;
             break;
         case atFuncCall:
             struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
@@ -289,8 +467,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) //If manages to retrieve the id of the function
             {
-                if (funcIdHolder->variableType != characters)
-                {
+                if (funcIdHolder->variableType != characters) {
                     InterpreterError("Not a valid function Id");
                     FreeValueHolder(funcIdHolder);
                     return 1;
@@ -447,12 +624,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             fprintf(currentFile, "break;\n");
             break;
         case atReturn: // Assign the return value. The end of the flow is done in atStatementList since it is the only place where a return can exist
-            if (returnValue==NULL) {
-                InterpreterError("Return called outside of a function");
-                return 1;
-            }
-
-            if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue)) {
+            if(!InterpreteAST(ast->child1, returnValue, globalSymbolTable, localSymbolTable, NULL, NULL, NULL)) { // If could not evaluate the id or constant to return
                 InterpreterError("Could not get the value to return");
                 return 1;
             }
@@ -564,6 +736,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             
             break;
         case atConstant:
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the value of the constant : outVal is null in atConstant");
+                return 1;
+            }
+
             outVal->variableType = ast->variableType;
 
             switch (ast->variableType) {
@@ -585,12 +762,20 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             return 0;
             break;
         case atVoid:
+            if (outVal==NULL)
+                return 0;
+            
             outVal->variableType = noType;
 
             return 0;
             break;
         case atAdd:
         {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the value of the addition : outVal is null in atAdd");
+                return 1;
+            }
+
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atAdd");
@@ -605,8 +790,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -678,6 +863,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atMinus:
         {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the value of the substraction : outVal is null in atMinus");
+                return 1;
+            }
+
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atMinus");
@@ -692,8 +882,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -753,6 +943,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atMultiply:
         {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the value of the multiplication : outVal is null in atMultiply");
+                return 1;
+            }
+
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atMultiply");
@@ -767,8 +962,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
@@ -828,6 +1023,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atDivide:
         {
+            if (outVal==NULL) {
+                InterpreterError("No pointer to hold the value of the division : outVal is null in atDivide");
+                return 1;
+            }
+
             struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
             if (value1==NULL) {
                 InterpreterError("Can't allocate memory for value1 in atDivide");
@@ -842,8 +1042,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             // If managed to get the value of both members of the operation
-            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL) 
-                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL))
+            if(InterpreteAST(ast->child1, value1, globalSymbolTable, localSymbolTable, NULL, NULL, NULL) 
+                && InterpreteAST(ast->child2, value2, globalSymbolTable, localSymbolTable, NULL, NULL, NULL))
             {
                 if(value2->variableType==integer)
                 {
