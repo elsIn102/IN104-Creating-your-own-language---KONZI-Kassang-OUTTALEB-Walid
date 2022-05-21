@@ -68,7 +68,7 @@ int TryFind_Hashtable (struct HashStruct* hashtable, char* key, struct VariableS
     if (key==NULL)
     {
         printf("A key value is needed to find in the hashtable\n");
-        return 1;
+        return 0;
     }
 
     unsigned long pos = djb2_hash(key) % hashtable->size;
@@ -81,13 +81,13 @@ int TryFind_Hashtable (struct HashStruct* hashtable, char* key, struct VariableS
 int Add_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruct* value) {
     if (hashtable==NULL || hashtable->table==NULL) {
         printf("Can't add a key/value pair to a null hashtable\n");
-        return 1;
+        return 0;
     }
 
     if (key==NULL || key[0]=='\0')
     {
         printf("A key value is needed to add to the hashtable\n");
-        return 1;
+        return 0;
     }
 
     unsigned long pos = djb2_hash(key) % hashtable->size;
@@ -95,13 +95,15 @@ int Add_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruc
 
     // If an element with this key already exists in the hashtable
     if (TryFind_VariableStruct(hashtable->table[pos], key, &foundValue)) {
-        printf("An element with this key already exists in the table");
+        printf("An element with the key %s already exists in the table\n", key);
         return 2;
     }
 
     value->nextInHash = hashtable->table[pos];
     hashtable->table[pos] = value;
 
+    printf("- Added an element with the key %s\n", key);
+
     
-    return 0;
+    return 1;
 }

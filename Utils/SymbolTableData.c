@@ -94,10 +94,10 @@ int TryFind_VariableStruct (struct VariableStruct* varStruct, char* key, struct 
         return 0;
     }
     
-    if (strcmp(varStruct->id, key)) { // If we found the right element
-        if (*outVal!=NULL)
+    if (!strcmp(varStruct->id, key)) { // If we found the right element
+        if (outVal!=NULL)
             *outVal = varStruct;
-
+            
         return 1;
     }
 
