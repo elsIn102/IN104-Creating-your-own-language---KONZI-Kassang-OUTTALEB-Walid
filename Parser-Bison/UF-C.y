@@ -42,6 +42,7 @@
 %token ASSIGN ASSIGN_FUNC AND
 %token IQ FANS ANNOUNCES
 %token PRINT PRINT_INT PRINT_FLOAT PRINT_STRING
+%token PRINT_ENDL
 
 %left ADD MINUS MULTIPLY DIVIDE
 
@@ -189,6 +190,7 @@ body_line:
   | BREAK endls { $$ = CreateBasicNode(atBreak, NULL, NULL, NULL); }
   | CONTINUE endls { $$ = CreateBasicNode(atContinue, NULL, NULL, NULL); }
   | return endls { $$ = $1; }
+  | PRINT_ENDL endls { $$ = CreateBasicNode(atPrintEndl, NULL, NULL, NULL); }
   ;
 assignment:
   exp and ASSIGN id { $$ = CreateBasicNode(atAssignment, $4, $1, NULL); }
@@ -280,7 +282,7 @@ andComparisons:
   | comparisonId { $$ = $1; }
   ;
 test_else_branch:
-  id BEGIN_ELSE BEGIN_ARGS funcCallArgs BEGIN_RETURN_VAR idOrVoid
+  id BEGIN_ELSE BEGIN_ARGS funcCallArgs BEGIN_RETURN_VAR idOrVoid endls
     {
       struct AstNode *callFuncNode = CreateBasicNode(atFuncCall, $1, $4, NULL);
       struct AstNode *assignNode = CreateBasicNode(atAssignment, $6, callFuncNode, NULL);

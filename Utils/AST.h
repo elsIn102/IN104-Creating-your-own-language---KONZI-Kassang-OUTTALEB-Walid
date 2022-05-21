@@ -11,7 +11,7 @@ enum AstType
     atTest, atComparisonDeclaration, atComparisonId, atTestIfBranch, atTestElseIfBranch, atTestElseBranch,
     atAssignment, atFuncCall, atFuncCallArgList, atWhileLoop, atWhileCompare, atBreak, atReturn, atContinue,
     atId, atFuncDefArgsList, atFuncDefArg, atConstant, atVoid,
-    atAdd, atMinus, atMultiply, atDivide, atPrint
+    atAdd, atMinus, atMultiply, atDivide, atPrint, atPrintEndl
 };
 
 enum ComparatorType

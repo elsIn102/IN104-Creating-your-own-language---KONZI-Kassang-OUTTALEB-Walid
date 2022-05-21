@@ -102,8 +102,6 @@ int Add_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruc
     value->nextInHash = hashtable->table[pos];
     hashtable->table[pos] = value;
 
-    printf("- Added an element with the key %s\n", key);
-
     
     return 1;
 }

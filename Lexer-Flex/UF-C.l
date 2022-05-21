@@ -40,12 +40,12 @@
 
 "noone" { return VOID; }
 
-"training is over" {return END_FUNC;}
+[Tt]"raining is over" {return END_FUNC;}
 [ \t] ;
 end            { return END; }
 
 
-"has this number of fans :" {return FANS;} //declaration of variables: int
+"has this number of fans"[ ]?":" {return FANS;} //declaration of variables: int
 "has an IQ of" { return IQ; }  //float
 "announces" {return ANNOUNCES;}  //declare a string
 
@@ -59,16 +59,16 @@ end            { return END; }
 "punches" { return ASSIGN_FUNC; }
 "bets on" {return BEGIN_CONDITION;}
 "takes the rest of the bets" {return BEGIN_ELSE;}
-"finally" { return BEGIN_ELSE_BRANCH;}
-"the gambling den closes" { return END_CONDITION; }
+[Ff]"inally"[,]? { return BEGIN_ELSE_BRANCH;}
+[Tt]"he gambling den closes" { return END_CONDITION; }
 "and" {return AND;}
 "using" {return BEGIN_ARGS;}
 "with" {return BEGIN_ARGS;}
 "enrolls" {return BEGIN_ARGS;}
 "and gives the money to" {return BEGIN_RETURN_VAR;}
-"A new competition begins" {return BEGIN_TEST;}
-"And the gambling den opens" {return BEGIN_BRANCH;} 
-"Match" {return BEGIN_COMPARISON; }
+[Aa]" new tournament begins" {return BEGIN_TEST;}
+[Aa]"nd the gambling den opens" {return BEGIN_BRANCH;} 
+[Mm]"atch" {return BEGIN_COMPARISON; }
 ":" {return COLON;}
 "-" {return HYPHEN;}
 "," {return COMMA;}
@@ -83,15 +83,17 @@ end            { return END; }
 "until someone splits them up" {return LOOP_EQ;}
 "until they fight back" {return LOOP_GTR;}
 "they come to an agreement" {return LOOP_NOT_EQ;}
-"meanwhile" {return LOOP_BEGIN_ACTION;}
+[Mm]"eanwhile" {return LOOP_BEGIN_ACTION;}
 
-"the match is interrupted" {return BREAK;}
-"end of the round" {return CONTINUE;}
+[Tt]"he match is interrupted" {return BREAK;}
+[Ee]"nd of the round" {return CONTINUE;}
 
-"the ring girl shows" {return PRINT;}
+[tT]"he ring girl shows" {return PRINT;}
 "the fans of" {return PRINT_INT;}
 "the wits of" {return PRINT_FLOAT;}
 "the flow of" {return PRINT_STRING;}
+
+[Aa]" time out is announced" { return PRINT_ENDL; }
 
 
 "joins" {return ADD;}
@@ -99,7 +101,7 @@ end            { return END; }
 "tears apart" {return DIVIDE;}
 "deals with" {return MULTIPLY;}
 
-"And the competition begins" { return DEFINITIONS_END; }
+[Aa]"nd the competition begins" { return DEFINITIONS_END; }
 
 [-]?[0-9]+ {yylval.ival= atoi(yytext); return INT;} 
 [-]?[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }

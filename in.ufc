@@ -1,27 +1,50 @@
-/*
-a has an IQ of 1.0
+a has this number of fans : -1
 b has an IQ of 2.0
 c has an IQ of 1.0
 
-D has an IQ of 0.0
-x has an IQ of 0.0
+D has an IQ of 0.03
+x has this number of fans: 0
 y has an IQ of 0.0
 
-Show is starting its training with the smart printVal to increase its effectiveness:
-    the ring girl shows printVal
+ShowIQ is starting their training with the smart printVal to increase their effectiveness:
+    the ring girl shows the wits of printVal
+    A time out is announced
 training is over
 
-A new competition begins :
+ShowFame is starting their training with the famous printVal to increase their effectiveness:
+    the ring girl shows the fans of printVal
+    A time out is announced
+training is over
+
+z has an IQ of 197.0
+
+F is starting their training with the smart x and the famous y to increase their IQ :
+    x joins y and hits z
+    z is thrown out
+training is over
+
+And the competition begins
+
+A new tournament begins :
     -Match 1: a challenges 0
     -Match 2: 0 challenges a
+    -Match 3 : c fights b
 And the gambling den opens :
-    -Show bets on 1 and 2 using a
+    -ShowFame bets on 1 and 2, 2 and 3 using a and gives the money to noone
+    -F bets on 1 using D and x and gives the money to y
+    Finally ShowIQ takes the rest of the bets using z and gives the money to noone
+The gambling den closes
 
-*/
+the ring girl shows the wits of z
+
+A time out is announced
+
+end
+
 
 /*addition of numbers: floats*/
 
-/* comment*/
+/*
 
 z has an IQ of 0.0
 
@@ -44,4 +67,9 @@ the ring girl shows the wits of b
 the ring girl shows " = "
 the ring girl shows the wits of c
 
+A time out is announced
+
+
 end
+
+*/

@@ -116,10 +116,11 @@ comparisonDict = dictionnary of the comparisons declared in an if statement
 
 */
 
-int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct ValueHolder* returnValue, struct Comparisons_Dict* comparisonDict) 
+// Returns 0 if there was an error, 1 otherwise
+int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct ValueHolder* returnValue, struct Comparisons_Dict** comparisonDict) 
 {
     if (ast==NULL)
-        return 0;
+        return 1;
     
     switch (ast->type)
     {
@@ -137,7 +138,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             int b = InterpreteAST(ast->child2, NULL, globalSymbolTable, NULL, NULL, NULL, NULL, NULL);
 
             Free_Hashtable(_globalSymbolTable);
-
+            
             return a && b;
             break;
         }
@@ -417,14 +418,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
 
                 // Fills the dictionnary with all the comparisons
-                if (!InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
+                if (!InterpreteAST(ast->child1, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, &compDict)) {
                     InterpreterError("Error while adding the comparisons to the dictionnary");
                     FreeComparisonsDict(compDict);
                     return 0;
                 }
 
                 //Interpretes the if/else_if/else statements using the dicionnary
-                if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, compDict)) {
+                if (!InterpreteAST(ast->child2, NULL, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, &compDict)) {
                     InterpreterError("Error in the if/else if/else statement (atTest)");
                     FreeComparisonsDict(compDict);
                     return 0;
@@ -436,28 +437,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
         case atComparisonDeclaration: // Adds the comparison to the dictionnary
         {
-            if (ast->child1->type == integer || ast->child1->type == floating)
-            {
-                if (ast->child2->type != integer || ast->child2->type != floating)
-                {
-                    InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
-                    return 0;
-                }
-            }
-            else if (ast->child1->type == characters)
-            {
-                if (ast->child2->type != characters)
-                {
-                    InterpreterError("Impossible to compare these variables (atComparisonDefinition): Incompatible variable types");
-                    return 0;
-                }
-            }
-            else {
-                InterpreterError("Impossible to use a variable with no type in a comparison (atComparisonDeclaration)");
-                return 0;
-            }
-
-            if (!Add_ComparisonsDict(&comparisonDict, ast->i, ast->comparator, ast->child1, ast->child2)) {
+            if (!Add_ComparisonsDict(comparisonDict, ast->i, ast->comparator, ast->child1, ast->child2)) {
                 InterpreterError("Could not add the comparison to the dictionnary");
                 return 0;
             }
@@ -473,7 +453,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             struct ComparisonValue *comparison;
-            if (!TryFind_ComparisonsDict(comparisonDict, ast->i, &comparison)) {
+            if (!TryFind_ComparisonsDict(*comparisonDict, ast->i, &comparison)) {
                 char* msg;
                 sprintf(msg, "Unable to find the comparison (match %d) in this dictionnary", ast->i);
                 InterpreterError(msg);
@@ -1828,6 +1808,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
 
             FreeValueHolder(valueToPrint);
+            return 1;
+            break;
+        }
+        case atPrintEndl:
+        {
+            printf("\n");
+
             return 1;
             break;
         }
