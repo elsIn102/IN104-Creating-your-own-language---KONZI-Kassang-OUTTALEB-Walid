@@ -5,6 +5,7 @@
 
 #define HASH_TABLE_SIZE 20
 
+
 // Structure of a hashtable
 struct HashStruct {
     unsigned int size;

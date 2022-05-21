@@ -6,9 +6,52 @@
 #include "../Utils/ComparisonDictionnary.h"
 #include "../Utils/SymbolTableData.h"
 
-void InterpreterError(char* error_msg)
+#define InterpreterError(msg) InterpreterError_Expand(msg, __LINE__)
+
+void InterpreterError_Expand(char* error_msg, const int line)
 {
-    printf("Error from the interpreter : %s\n", error_msg);
+    printf("Error from the interpreter at line %d : %s\n", line, error_msg);
+}
+
+// Copy a char* from source to dest
+// If dest is not NULL, free it first
+// Return 0 if there was an error, 1 otherwise
+int StrFreeAndCopy (char* dest, char* source) {
+    if (source==NULL || source[0]=='\0') {
+        printf("The source cannot be NULL or an empty string (StrFreeAndCopy)\n");
+        return 0;
+    }
+
+    if (dest!=NULL)
+        free(dest);
+
+    dest = malloc(1 + strlen(source));
+    if (dest==NULL) {
+        printf("Error while allocating memory for the destination (StrFreeAndCopy)\n");
+        return 0;
+    }
+
+    strcpy(dest, source);
+
+    return 1;
+}
+
+int CreateValueHolder (struct ValueHolder** valHolder) {
+    if (valHolder==NULL) {
+        printf("Error : need a pointer to store the created ValueHolder\n");
+        return 0;
+    }
+
+    struct ValueHolder* _valHolder = malloc(sizeof(struct ValueHolder));
+    if (_valHolder == NULL) {
+        printf("Could not allocate memory for _valHolder in CreateValueHolder\n");
+        return 0;
+    }
+    _valHolder->s = NULL;
+
+    *valHolder = _valHolder;
+
+    return 1;
 }
 
 void FreeValueHolder (struct ValueHolder* value) {
@@ -77,12 +120,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         {
             if (ast->child1->type == atTestIfBranch || ast->child1->type == atTestElseIfBranch) 
             {
-                struct ValueHolder* stopEvaluationsHolder = malloc(sizeof(struct ValueHolder));
-                if (stopEvaluationsHolder==NULL) {
-                    InterpreterError("Can't allocate memory for stopEvaluationsHolder in atStatementList");
+                struct ValueHolder* stopEvaluationsHolder;
+                if (!CreateValueHolder(&stopEvaluationsHolder)) {
+                    InterpreterError("Error while creating the ValueHolder for stopEvaluationsHolder in atStatementList");
                     return 0;
                 }
 
+                stopEvaluationsHolder->variableType = integer;
                 stopEvaluationsHolder->i = 0; // Don't stop by default
 
                 int a = InterpreteAST(ast->child1, stopEvaluationsHolder, globalSymbolTable, localSymbolTable, NULL, NULL, returnValue, comparisonDict);
@@ -110,15 +154,15 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
-            if (booleanAndHolder1==NULL) {
-                InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalOr");
+            struct ValueHolder* booleanAndHolder1;
+            if (!CreateValueHolder(&booleanAndHolder1)) {
+                InterpreterError("Error while creating the ValueHolder for booleanAndHolder1 in atLogicalOr");
                 return 0;
             }
 
-            struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
-            if (booleanAndHolder2==NULL) {
-                InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalOr");
+            struct ValueHolder* booleanAndHolder2;
+            if (!CreateValueHolder(&booleanAndHolder2)) {
+                InterpreterError("Error while creating the ValueHolder for booleanAndHolder2 in atLogicalOr");
                 FreeValueHolder(booleanAndHolder1);
                 return 0;
             }
@@ -144,15 +188,15 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder* booleanAndHolder1 = malloc(sizeof(struct ValueHolder));
-            if (booleanAndHolder1==NULL) {
-                InterpreterError("Can't allocate memory for booleanAndHolder1 in atLogicalAnd");
+            struct ValueHolder* booleanAndHolder1;
+            if (!CreateValueHolder(&booleanAndHolder1)) {
+                InterpreterError("Error while creating the ValueHolder for booleanAndHolder1 in atLogicalAnd");
                 return 0;
             }
 
-            struct ValueHolder* booleanAndHolder2 = malloc(sizeof(struct ValueHolder));
-            if (booleanAndHolder2==NULL) {
-                InterpreterError("Can't allocate memory for booleanAndHolder2 in atLogicalAnd");
+            struct ValueHolder* booleanAndHolder2;
+            if (!CreateValueHolder(&booleanAndHolder2)) {
+                InterpreterError("Error while creating the ValueHolder for booleanAndHolder2 in atLogicalAnd");
                 FreeValueHolder(booleanAndHolder1);
                 return 0;
             }
@@ -173,24 +217,27 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atVariableDef:
         {
-            struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
-            if (varIdHolder==NULL) {
-                InterpreterError("Can't allocate memory for varIdHolder in atVariableDef");
+            struct ValueHolder* varIdHolder;
+            if (!CreateValueHolder(&varIdHolder)) {
+                InterpreterError("CError while creating the ValueHolder for varIdHolder in atVariableDef");
                 return 0;
             }
 
             if (InterpreteAST(ast->child1, varIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) { // get the name of the variable
-                struct VariableStruct* varValue = malloc(sizeof(struct VariableStruct));
-                if (varValue==NULL) {
-                    InterpreterError("Can't allocate memory for varValue in atVariableDef");
+                struct VariableStruct* varValue;
+                if (!CreateVariableStruct(&varValue)) {
+                    InterpreterError("Error while creating the VariableStruct for varValue in atVariableDef");
                     FreeValueHolder(varIdHolder);
                     return 0;
                 }
 
                 // Fills the fields of varValue
-                varValue->id = malloc(1 + strlen(varIdHolder->s));
-                strcpy(varValue->id, varIdHolder->s);
-
+                if (!StrFreeAndCopy(varValue->id, varIdHolder->s)) {
+                    InterpreterError("Error while copying varIdHolder->id into varValue->id in atVariableDef");
+                    FreeValueHolder(varIdHolder);
+                    FreeVariableStruct(varValue);
+                    return 0;
+                }
                 varValue->type = ast->variableType;
 
                 switch (ast->variableType)
@@ -202,8 +249,14 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         varValue->f = ast->f;
                         break;
                     case characters:
-                        varValue->s = malloc(1 + strlen(ast->s));
-                        strcpy(varValue->s, ast->s);
+                        if (!StrFreeAndCopy(varValue->s, ast->s)) {
+                            InterpreterError("Error while copying ast->s into varValue->s in atVariableDef");
+                            FreeValueHolder(varIdHolder);
+                            FreeVariableStruct(varValue);
+                            return 0;
+                        }
+
+                        return 1;
                         break;
                     default:
                         InterpreterError("Cannot define a variable with this type");
@@ -214,8 +267,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
 
                 // Add varValue to the local hashtable if it exists, to the global one otherwise
-                if (!((localSymbolTable!=NULL && Add_Hashtable(localSymbolTable, varValue->s, varValue))
-                    || Add_Hashtable(globalSymbolTable, varValue->s, varValue)))
+                if (!(localSymbolTable!=NULL && Add_Hashtable(localSymbolTable, varValue->id, varValue)
+                    || !Add_Hashtable(globalSymbolTable, varValue->id, varValue)))
                 {
                     InterpreterError("Error when adding the variable to the hashtable (atVariableDef)");
                     FreeValueHolder(varIdHolder);
@@ -235,11 +288,12 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atFuncDef:
         {
-            struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
-            if (funcIdHolder==NULL) {
-                InterpreterError("Can't allocate memory for funcIdHolder in atFuncDef");
+            struct ValueHolder* funcIdHolder;
+            if (!CreateValueHolder(&funcIdHolder)) {
+                InterpreterError("Error while creating the ValueHolder for funcIdHolder in atFuncDef");
                 return 0;
             }
+            funcIdHolder->s = NULL;
 
             if (InterpreteAST(ast->child1, funcIdHolder, globalSymbolTable, localSymbolTable, NULL, NULL, NULL, NULL)) // get the name of the function
             {
@@ -261,16 +315,15 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
                 if (ast->child2->type != atVoid) // If the function requires arguments, fill the list and table
                 {
-                    _argsTable = malloc(sizeof(struct HashStruct));
-                    if (funcIdHolder==NULL) {
-                        InterpreterError("Can't allocate memory for _argsTable in atFuncDef");
+                    printf("voidArg\n");
+                    if (!Create_Hashtable(&_argsTable)) {
+                        InterpreterError("Error while creating the _argsTable hashtable");
                         FreeValueHolder(funcIdHolder);
                         return 0;
                     }
 
-                    _listOfArgs = malloc(sizeof(struct ArgList));
-                    if (_listOfArgs==NULL) {
-                        InterpreterError("Can't allocate memory for _listOfArgs in atFuncDef");
+                    if (!CreateArgList(&_listOfArgs)) {
+                        InterpreterError("Error while creating the ArgList for _listOfArgs in atFuncDef");
                         FreeValueHolder(funcIdHolder);
                         Free_Hashtable(_argsTable);
                         return 0;
@@ -287,9 +340,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
 
                 // Create the structure of the function that will be stored in the global symbol table
-                struct VariableStruct* funcStruct = malloc(sizeof(struct VariableStruct));
-                if (funcStruct==NULL) {
-                    InterpreterError("Can't allocate memory for funcStruct in atFuncDef");
+                struct VariableStruct* funcStruct;
+                if (!CreateVariableStruct(&funcStruct)) {
+                    InterpreterError("Error while creating the VariableStruct for funcStruct in atFuncDef");
                     FreeValueHolder(funcIdHolder);
                     Free_Hashtable(_argsTable);
                     FreeArgList(_listOfArgs);
@@ -297,8 +350,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 }
 
                 // Set the parameters of the function
-                funcStruct->s = malloc(1 + strlen(funcIdHolder->s));
-                strcpy(funcStruct->s, funcIdHolder->s);
+                if (!StrFreeAndCopy(funcStruct->s, funcIdHolder->s)) {
+                    InterpreterError("Error while copying funcIdHolder->s into funcStruct->s in atFuncDef");
+                    FreeValueHolder(funcIdHolder);
+                    Free_Hashtable(_argsTable);
+                    FreeArgList(_listOfArgs);
+                    return 0;
+                }
 
                 funcStruct->argumentsTable = _argsTable;
                 funcStruct->argumentsList = _listOfArgs;
@@ -398,15 +456,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder* var1Holder = malloc(sizeof(struct ValueHolder));
-            if (var1Holder==NULL) {
-                InterpreterError("Can't allocate memory for var1Holder in atComparisonId");
+            struct ValueHolder* var1Holder;
+            if (!CreateValueHolder(&var1Holder)) {
+                InterpreterError("Error while creating the ValueHolder for var1Holder in atComparisonId");
                 return 0;
             }
 
-            struct ValueHolder* var2Holder = malloc(sizeof(struct ValueHolder));
-            if (var2Holder==NULL) {
-                InterpreterError("Can't allocate memory for var2Holder in atComparisonId");
+
+            struct ValueHolder* var2Holder;
+            if (!CreateValueHolder(&var2Holder)) {
+                InterpreterError("Error while creating the ValueHolder for var2Holder in atComparisonId");
                 FreeValueHolder(var1Holder);
                 return 0;
             }
@@ -1046,9 +1105,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atTestIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
         {
-            struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
-            if (booleanValueHolder==NULL) {
-                InterpreterError("Can't allocate memory for booleanValueHolder in atTestIfBranch");
+            struct ValueHolder* booleanValueHolder;
+            if (!CreateValueHolder(&booleanValueHolder)) {
+                InterpreterError("Error while creating the ValueHolder for booleanValueHolder in atTestIfBranch");
                 return 0;
             }
 
@@ -1071,9 +1130,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atTestElseIfBranch: // If the condition is true, launches the atAssignment and set outVal->i to 1
         {
-            struct ValueHolder* booleanValueHolder = malloc(sizeof(struct ValueHolder));
-            if (booleanValueHolder==NULL) {
-                InterpreterError("Can't allocate memory for booleanValueHolder in atTestElseIfBranch");
+            struct ValueHolder* booleanValueHolder;
+            if (!CreateValueHolder(&booleanValueHolder)) {
+                InterpreterError("Error while creating the ValueHolder for booleanValueHolder in atTestElseIfBranch");
                 return 0;
             }
 
@@ -1107,9 +1166,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             }
             else
             {
-                struct ValueHolder* varIdHolder = malloc(sizeof(struct ValueHolder));
-                if (varIdHolder==NULL) {
-                    InterpreterError("Can't allocate memory for varIdHolder in atAssignment");
+                struct ValueHolder* varIdHolder;
+                if (!CreateValueHolder(&varIdHolder)) {
+                    InterpreterError("Error while creating the ValueHolder for varIdHolder in atAssignment");
                     return 0;
                 }
                 
@@ -1133,9 +1192,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
                     // If it's an assignation from another variable
                     if (ast->child2->type == atId) {
-                        struct ValueHolder* var2IdHolder = malloc(sizeof(struct ValueHolder));
-                        if (var2IdHolder==NULL) {
-                            InterpreterError("Can't allocate memory for var2IdHolder in atAssignment");
+                        struct ValueHolder* var2IdHolder;
+                        if (!CreateValueHolder(&var2IdHolder)) {
+                            InterpreterError("Error while creating the ValueHolder for var2IdHolder in atAssignment");
                             FreeValueHolder(varIdHolder);
                             return 0;
                         }
@@ -1175,12 +1234,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                 case floating:
                                     varStruct->f = var2Struct->f;
                                     break;
-                                case characters:
-                                    if (varStruct->s != NULL)
-                                        free(varStruct->s);
-                                    
-                                    varStruct->s = malloc(1 + strlen(var2Struct->s));
-                                    strcpy(varStruct->s, var2Struct->s);
+                                case characters:                                    
+                                    if (!StrFreeAndCopy(varStruct->s, var2Struct->s)) {
+                                        InterpreterError("Error while copying var2Struct->s into varStruct->s in atAssignment");
+                                        FreeValueHolder(varIdHolder);
+                                        FreeValueHolder(var2IdHolder);
+                                        return 0;
+                                    }
                                     break;
                                 default:
                                     InterpreterError("Impossible to assign this type of variable (atAssignment)");
@@ -1202,9 +1262,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         }
                     }
                     else { // if it's not an assignment from another variable
-                        struct ValueHolder* valToAssign = malloc(sizeof(struct ValueHolder));
-                        if (valToAssign==NULL) {
-                            InterpreterError("Can't allocate memory for valToAssign in atAssignment");
+                        struct ValueHolder* valToAssign;
+                        if (!CreateValueHolder(&valToAssign)) {
+                            InterpreterError("Error while creating the ValueHolder for valToAssign in atAssignment");
                             FreeValueHolder(varIdHolder);
                             return 0;
                         }
@@ -1228,11 +1288,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                                     varStruct->f = valToAssign->f;
                                     break;
                                 case characters:
-                                    if (varStruct->s != NULL)
-                                        free(varStruct->s);
-                                    
-                                    varStruct->s = malloc(1 + strlen(valToAssign->s));
-                                    strcpy(varStruct->s, valToAssign->s);
+                                    if (!StrFreeAndCopy(varStruct->s, valToAssign->s)) {
+                                        InterpreterError("Error while copying valToAssign->s into varStruct->s in atAssignment");
+                                        FreeValueHolder(varIdHolder);
+                                        FreeValueHolder(valToAssign);
+                                        return 0;
+                                    }
+
                                     break;
                                 default:
                                     InterpreterError("Impossible to assign this type of variable (atAssignment)");
@@ -1266,9 +1328,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atFuncCall:
         {
-            struct ValueHolder* funcIdHolder = malloc(sizeof(struct ValueHolder));
-            if (funcIdHolder==NULL) {
-                InterpreterError("Can't allocate memory for funcIdHolder in atFuncCall");
+            struct ValueHolder* funcIdHolder;
+            if (!CreateValueHolder(&funcIdHolder)) {
+                InterpreterError("Error while creating the ValueHolder for funcIdHolder in atFuncCall");
                 return 0;
             }
 
@@ -1332,9 +1394,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             if (TryFind_Hashtable(argsTable, listOfArgs->id, &foundArg))
             {
                 // Get the value to assgin to the argument
-                struct ValueHolder* argVal = malloc(sizeof(struct ValueHolder));
-                if (argVal==NULL) {
-                    InterpreterError("Can't allocate memory for argVal in atFuncCallArgList");
+                struct ValueHolder* argVal;
+                if (CreateValueHolder(&argVal)) {
+                    InterpreterError("Error while creating the ValueHolder for argVal in atFuncCallArgList");
                     return 0;
                 }
 
@@ -1356,11 +1418,12 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             foundArg->f = argVal->f;
                             break;
                         case characters:
-                            if (foundArg->s != NULL)
-                                free(foundArg->s);
+                            if (!StrFreeAndCopy(foundArg->s, argVal->s)) {
+                                InterpreterError("Error while copying argVal->s into foundArg->s in atFuncCallArgList");
+                                FreeValueHolder(argVal);
+                                return 0;
+                            }
 
-                            foundArg->s = malloc(1 + strlen(argVal->s));
-                            strcpy(foundArg->s, argVal->s);
                             break;            
                         default:
                             InterpreterError("Not a valid argument type");
@@ -1389,9 +1452,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atWhileLoop:
         {
-            struct ValueHolder* comparisonResult = malloc(sizeof(struct ValueHolder));
-            if (comparisonResult==NULL) {
-                InterpreterError("Can't allocate memory for comparisonResult in atWhileLoop");
+            struct ValueHolder* comparisonResult;
+            if (!CreateValueHolder(&comparisonResult)) {
+                InterpreterError("Error while creating the ValueHolder for comparisonResult in atWhileLoop");
                 return 0;
             }
 
@@ -1415,15 +1478,15 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
             outVal->variableType = integer;
 
-            struct ValueHolder* var1Holder = malloc(sizeof(struct ValueHolder));
-            if (var1Holder==NULL) {
-                InterpreterError("Can't allocate memory for var1Holder in atCompare");
+            struct ValueHolder* var1Holder;
+            if (!CreateValueHolder(&var1Holder)) {
+                InterpreterError("Error while creating the ValueHolder for var1Holder in atCompare");
                 return 0;
             }
 
-            struct ValueHolder* var2Holder = malloc(sizeof(struct ValueHolder));
-            if (var2Holder==NULL) {
-                InterpreterError("Can't allocate memory for var2Holder in atCompare");
+            struct ValueHolder* var2Holder;
+            if (!CreateValueHolder(&var2Holder)) {
+                InterpreterError("Error while creating the ValueHolder for var2Holder in atCompare");
                 FreeValueHolder(var1Holder);
                 return 0;
             }
@@ -2081,11 +2144,12 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            if (outVal->s!=NULL)
-                free(outVal->s);
-            
-            outVal->s = malloc(1 + strlen(ast->s));
-            strcpy(outVal->s, ast->s);
+            if (!StrFreeAndCopy(outVal->s, ast->s)) {
+                InterpreterError("Error while copying ast->s into outVal->s in atId");
+                return 0;
+            }
+
+            outVal->variableType = characters;
 
             return 1;
             break;
@@ -2097,9 +2161,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
             {
                 if (ast->child2!=NULL) { // if there is another argument to define
                     // Create the next element in the list of arguments
-                    struct ArgList* newArg = malloc(sizeof(struct ArgList));
-                    if (newArg==NULL) {
-                        InterpreterError("Can't allocate memory for newArg in atFuncDefArgsList");
+                    struct ArgList* newArg;
+                    if (!CreateArgList(&newArg)) {
+                        InterpreterError("Error while creating the ArgList for newArg in atFuncDefArgsList");
                         return 0;
                     }
 
@@ -2123,9 +2187,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atFuncDefArg: // Add the argument to argsTable and set it in listOfArgs
         {
-            struct ValueHolder* argId = malloc(sizeof(struct ValueHolder));
-            if (argId==NULL) {
-                InterpreterError("Can't allocate memory for argId in atFuncDefArg");
+            struct ValueHolder* argId;
+            if (!CreateValueHolder(&argId)) {
+                InterpreterError("Error while creating the ValueHolder for argId in atFuncDefArg");
                 return 0;
             }
 
@@ -2139,17 +2203,24 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     return 0;
                 }
 
-                // Add the argument to the argsTable of the function
-                struct VariableStruct* argValue = malloc(sizeof(struct VariableStruct));
-                if (argValue==NULL) {
-                    InterpreterError("Can't allocate memory for argValue in atFuncDefArg");
+                // Create and set up the argument
+                struct VariableStruct* argValue;
+                if (!CreateVariableStruct(&argValue)) {
+                    InterpreterError("Error while creating the VariableStruct for argValue in atFuncDefArg");
                     FreeValueHolder(argId);
                     return 0;
                 }
 
-                argValue->id = argId->s;
+                if (!StrFreeAndCopy(argValue->id, argId->s)) {
+                    InterpreterError("Error while copying argId->s into argValue->id in atFuncDefArg");
+                    FreeValueHolder(argId);
+                    FreeVariableStruct(argValue);
+                    return 0;
+                }
+                
                 argValue->type = ast->variableType;
 
+                // Add the argument to the argsTable hashtable
                 switch (Add_Hashtable(argsTable, argId->s, argValue))
                 {
                     case 2:
@@ -2166,14 +2237,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         break;
                     case 0:
                         // Set the argument from listOfArgs
-                        if (listOfArgs->id!=NULL)
-                            free(listOfArgs->id);
-                        
-                        listOfArgs->id = malloc(1 + strlen(argId->s));
-                        strcpy(listOfArgs->id, argId->s);
+                        if (!StrFreeAndCopy(listOfArgs->id, argId->s)) {
+                            InterpreterError("Error while copying argId->s into listOfArgs->id in atFuncDefArg");
+                            FreeValueHolder(argId);
+                            FreeVariableStruct(argValue);
+                            return 0;
+                        }
+
+                        FreeValueHolder(argId);
 
                         return 1;
-
                         break;
                     default:
                         InterpreterError("Unknown error while trying to add the argument to the hashtable");
@@ -2189,6 +2262,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
             
+            return 1;
             break;
         }
         case atConstant:
@@ -2208,7 +2282,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     outVal->f = ast->f;
                     break;
                 case characters:
-                    outVal->s = ast->s; // No need to copy since the value will be used before we free the AST
+                    if (!StrFreeAndCopy(outVal->s, ast->s)) {
+                        InterpreterError("Error while copying ast->s into outVal->id in atConstant");
+                        return 0;
+                    }
+                    
                     break;
                 default:
                     InterpreterError("Not a valid constant type");
@@ -2234,16 +2312,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
-            if (value1==NULL) {
-                InterpreterError("Can't allocate memory for value1 in atAdd");
+            struct ValueHolder *value1;
+            if (!CreateValueHolder(&value1)) {
+                InterpreterError("Error while creating the ValueHolder for value1 in atAdd");
                 return 0;
             }
 
-            struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
-            if (value2==NULL) {
+            struct ValueHolder *value2;
+            if (!CreateValueHolder(&value2)) {
+                InterpreterError("Error while creating the ValueHolder for value2 in atAdd");
                 FreeValueHolder(value1);
-                InterpreterError("Can't allocate memory for value2 in atAdd");
                 return 0;
             }
 
@@ -2295,6 +2373,13 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         free(outVal->s);
 
                     outVal->s = malloc(1 + strlen(value1->s) + strlen(value2->s));
+                    if (outVal->s == NULL) {
+                        InterpreterError("Could not allocate memory for outVal->s in atAdd");
+                        FreeValueHolder(value1);
+                        FreeValueHolder(value2);
+                        return 0;
+                    }
+                    
                     strcpy(outVal->s, value1->s);
                     strcat(outVal->s, value2->s);
                 }
@@ -2326,16 +2411,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
-            if (value1==NULL) {
-                InterpreterError("Can't allocate memory for value1 in atMinus");
+            struct ValueHolder *value1;
+            if (!CreateValueHolder(&value1)) {
+                InterpreterError("Error while creating the ValueHolder for value1 in atMinus");
                 return 0;
             }
 
-            struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
-            if (value2==NULL) {
+            struct ValueHolder *value2;
+            if (!CreateValueHolder(&value2)) {
+                InterpreterError("Error while creating the ValueHolder for value2 in atMinus");
                 FreeValueHolder(value1);
-                InterpreterError("Can't allocate memory for value2 in atMinus");
                 return 0;
             }
 
@@ -2406,16 +2491,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
-            if (value1==NULL) {
-                InterpreterError("Can't allocate memory for value1 in atMultiply");
+            struct ValueHolder *value1;
+            if (!CreateValueHolder(&value1)) {
+                InterpreterError("Error while creating the ValueHolder for value1 in atMinus");
                 return 0;
             }
 
-            struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
-            if (value2==NULL) {
+            struct ValueHolder *value2;
+            if (!CreateValueHolder(&value2)) {
+                InterpreterError("Error while creating the ValueHolder for value2 in atMinus");
                 FreeValueHolder(value1);
-                InterpreterError("Can't allocate memory for value2 in atMultiply");
                 return 0;
             }
 
@@ -2486,16 +2571,16 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 return 0;
             }
 
-            struct ValueHolder *value1 = malloc(sizeof(struct ValueHolder));
-            if (value1==NULL) {
-                InterpreterError("Can't allocate memory for value1 in atDivide");
+            struct ValueHolder *value1;
+            if (!CreateValueHolder(&value1)) {
+                InterpreterError("Error while creating the ValueHolder for value1 in atMinus");
                 return 0;
             }
 
-            struct ValueHolder *value2 = malloc(sizeof(struct ValueHolder));
-            if (value2==NULL) {
+            struct ValueHolder *value2;
+            if (!CreateValueHolder(&value2)) {
+                InterpreterError("Error while creating the ValueHolder for value2 in atMinus");
                 FreeValueHolder(value1);
-                InterpreterError("Can't allocate memory for value2 in atDivide");
                 return 0;
             }
 
@@ -2582,9 +2667,9 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         case atPrint:
         {
             // Used to get the value of the variaiable in child1 (the variable to print)
-            struct ValueHolder *valueToPrint = malloc(sizeof(struct ValueHolder));
-            if (valueToPrint==NULL) {
-                InterpreterError("Can't allocate memory for valueToPrint in atPrint");
+            struct ValueHolder *valueToPrint;
+            if (!CreateValueHolder(&valueToPrint)) {
+                InterpreterError("Error while creating the ValueHolder for valueToPrint in atPrint");
                 return 0;
             }
 

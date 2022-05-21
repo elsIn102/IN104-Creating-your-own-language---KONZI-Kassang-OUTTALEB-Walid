@@ -5,10 +5,13 @@
 
 // Hash function for char* named djb2
 unsigned long djb2_hash (char *str) {
+    if (str == NULL)
+        printf("djb2 algorithme requires a char*\n");
+        
     unsigned long hash = 5381;
     int c;
 
-    while (c = *str++)
+    while ((c = *str++) != 0)
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
     return hash;
@@ -57,9 +60,15 @@ void Free_Hashtable (struct HashStruct* hashtable) {
 // Returns 1 if an element was found and foundValue points to that element
 // Returns 0 otherwise
 int TryFind_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruct** foundValue) {
-    if (hashtable==NULL) {
+    if (hashtable==NULL || hashtable->table == NULL) {
         printf("Can't find a key in a null hashtable\n");
         return 0;
+    }
+
+    if (key==NULL)
+    {
+        printf("A key value is needed to find in the hashtable\n");
+        return 1;
     }
 
     unsigned long pos = djb2_hash(key) % hashtable->size;
@@ -70,8 +79,14 @@ int TryFind_Hashtable (struct HashStruct* hashtable, char* key, struct VariableS
 // This function adds a key/value pair to the table if the key doesn't already exist
 // It returns 1 if the pair was added, 0 if there was an error and 2 if the key already existed in the hashtable
 int Add_Hashtable (struct HashStruct* hashtable, char* key, struct VariableStruct* value) {
-    if (hashtable==NULL) {
+    if (hashtable==NULL || hashtable->table==NULL) {
         printf("Can't add a key/value pair to a null hashtable\n");
+        return 1;
+    }
+
+    if (key==NULL || key[0]=='\0')
+    {
+        printf("A key value is needed to add to the hashtable\n");
         return 1;
     }
 

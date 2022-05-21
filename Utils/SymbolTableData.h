@@ -31,6 +31,9 @@ struct ArgList {
     struct ArgList* next;
 };
 
+int CreateArgList (struct ArgList** argList);
+
+int CreateVariableStruct (struct VariableStruct** varStruct);
 
 // Free the memory used by a VariableStruct
 void FreeVariableStruct (struct VariableStruct* varStruct);
