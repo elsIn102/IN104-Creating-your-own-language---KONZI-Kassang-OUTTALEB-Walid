@@ -1,5 +1,7 @@
 #include <stdlib.h>
+
 #include "Hash.h"
+#include "SymbolTableData.h"
 
 // Hash function for char* named djb2
 unsigned long djb2_hash (char *str) {

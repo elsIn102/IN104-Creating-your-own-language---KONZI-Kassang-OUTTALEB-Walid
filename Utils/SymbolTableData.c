@@ -1,5 +1,8 @@
 #include <stdlib.h>
+#include <string.h>
+
 #include "SymbolTableData.h"
+#include "Hash.h"
 
 void FreeArgList(struct ArgList* argList) {
     if (argList==NULL)

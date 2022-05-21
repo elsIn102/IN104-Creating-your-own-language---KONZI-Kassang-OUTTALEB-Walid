@@ -48,7 +48,7 @@ comparisonDict = dictionnary of the comparisons declared in an if statement
 
 */
 
-int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct valueHolder* returnValue, struct Comparisons_Dict* comparisonDict) 
+int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashStruct* globalSymbolTable, struct HashStruct* localSymbolTable, struct HashStruct* argsTable, struct ArgList* listOfArgs, struct ValueHolder* returnValue, struct Comparisons_Dict* comparisonDict) 
 {
     if (ast==NULL)
         return 0;
@@ -570,8 +570,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 // Get the values of the variables
                 struct VariableStruct *var1Struct, *var2Struct;
                 // Using the lazy evaluation to first look at local variables
-                if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, var1Struct))
-                        || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, var2Struct))) 
+                if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, &var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, &var1Struct))
+                        || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, &var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, &var2Struct))) 
                 {
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
@@ -727,7 +727,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 // Get the value of the variable
                 struct VariableStruct* varStruct;
                 // Using the lazy evaluation to first look at local variables
-                if (!TryFind_Hashtable(localSymbolTable, var2Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, varStruct)) {
+                if (!TryFind_Hashtable(localSymbolTable, var2Holder->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, &varStruct)) {
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
                     FreeValueHolder(var2Holder);
@@ -882,7 +882,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 // Get the value of the variable
                 struct VariableStruct* varStruct;
                 // Using the lazy evaluation to first look at local variables
-                if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, varStruct)) {
+                if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, &varStruct)) {
                     InterpreterError("No defined variable with this name (atComparisonId)");
                     FreeValueHolder(var1Holder);
                     FreeValueHolder(var2Holder);
@@ -1125,7 +1125,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Get a pointer to the variable to assign to in the hashtable
                     struct VariableStruct* varStruct;
                     // Using the lazy evaluation to first look at local variables
-                    if (!TryFind_Hashtable(localSymbolTable, varIdHolder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, varIdHolder->s, varStruct)) {
+                    if (!TryFind_Hashtable(localSymbolTable, varIdHolder->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, varIdHolder->s, &varStruct)) {
                         InterpreterError("No defined variable with this name (atAssignment)");
                         FreeValueHolder(varIdHolder);
                         return 0;
@@ -1152,7 +1152,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                             // Get a pointer to the variable
                             struct VariableStruct* var2Struct;
                             // Using the lazy evaluation to first look at local variables
-                            if (!TryFind_Hashtable(localSymbolTable, var2IdHolder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2IdHolder->s, var2Struct)) {
+                            if (!TryFind_Hashtable(localSymbolTable, var2IdHolder->s, &var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2IdHolder->s, &var2Struct)) {
                                 InterpreterError("No defined variable with this name (2) (atAssignment)");
                                 FreeValueHolder(varIdHolder);
                                 FreeValueHolder(var2IdHolder);
@@ -1580,8 +1580,8 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Get the values of the variables
                     struct VariableStruct *var1Struct, *var2Struct;
                     // Using the lazy evaluation to first look at local variables
-                    if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, var1Struct))
-                            || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, var2Struct))) 
+                    if ((!TryFind_Hashtable(localSymbolTable, var1Holder->s, &var1Struct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, &var1Struct))
+                            || (!TryFind_Hashtable(localSymbolTable, var2Holder->s, &var2Struct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, &var2Struct))) 
                     {
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
@@ -1737,7 +1737,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Get the value of the variable
                     struct VariableStruct* varStruct;
                     // Using the lazy evaluation to first look at local variables
-                    if (!TryFind_Hashtable(localSymbolTable, var2Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, varStruct)) {
+                    if (!TryFind_Hashtable(localSymbolTable, var2Holder->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, var2Holder->s, &varStruct)) {
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
@@ -1892,7 +1892,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                     // Get the value of the variable
                     struct VariableStruct* varStruct;
                     // Using the lazy evaluation to first look at local variables
-                    if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, varStruct)) {
+                    if (!TryFind_Hashtable(localSymbolTable, var1Holder->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, var1Holder->s, &varStruct)) {
                         InterpreterError("No defined variable with this name (atWhileCompare)");
                         FreeValueHolder(var1Holder);
                         FreeValueHolder(var2Holder);
@@ -2150,7 +2150,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 argValue->id = argId->s;
                 argValue->type = ast->variableType;
 
-                switch (Add_Hashtable(argsTable, argId, argValue))
+                switch (Add_Hashtable(argsTable, argId->s, argValue))
                 {
                     case 2:
                         InterpreterError("An argument with this name has already been defined");
@@ -2221,7 +2221,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
         }
         case atVoid:
         {
-            if (!outVal==NULL) 
+            if (outVal!=NULL)
                 outVal->variableType = noType;
 
             return 1;
@@ -2610,7 +2610,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 else { //Then it is a variable
                     struct VariableStruct* varStruct;
                     // Using the lazy evaluation to first look at local variables
-                    if (!TryFind_Hashtable(localSymbolTable, valueToPrint->s, varStruct) && !TryFind_Hashtable(globalSymbolTable, valueToPrint->s, varStruct)) {
+                    if (!TryFind_Hashtable(localSymbolTable, valueToPrint->s, &varStruct) && !TryFind_Hashtable(globalSymbolTable, valueToPrint->s, &varStruct)) {
                         InterpreterError("No defined variable with this name (atPrint)");
                         FreeValueHolder(valueToPrint);
                         return 0;

@@ -3,7 +3,7 @@
 
 void TranslatorError(char* error_msg)
 {
-    printf("Error from the interpreter : %s\n", error_msg);
+    printf("Error from the translator : %s\n", error_msg);
 }
 
 void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile, FILE* funcFile, FILE* varFile, struct Comparisons_Dict* comparisonsDict)
