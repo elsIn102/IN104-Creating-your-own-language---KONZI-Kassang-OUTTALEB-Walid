@@ -447,14 +447,13 @@ int TranslateAST (struct AstNode* ast, FILE* outFile)
     fclose(mainFile);
 
     // Deleting all temporary files
-    /*
     if (remove(VAR_TEMP_NAME))
         printf("Can't delete the variable temporary file\n");
     if (remove(FUNC_TEMP_NAME))
         printf("Can't delete the function temporary file\n");
     if (remove(MAIN_TEMP_NAME))
         printf("Can't delete the main temporary file\n");
-    */
+    
    
     return 1;
     
