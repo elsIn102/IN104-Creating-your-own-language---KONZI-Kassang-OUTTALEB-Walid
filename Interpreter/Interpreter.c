@@ -1695,7 +1695,7 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
                 if(value2->variableType==integer)
                 {
-                    if (value2->i==0) {
+                    if (value1->i==0) {
                         InterpreterError("Division by 0");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
@@ -1706,18 +1706,18 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                         if (value1->i % value2->i == 0)
                         {
                             outVal->variableType=integer;
-                            outVal->i = value1->i / value2->i;
+                            outVal->i = value2->i / value1->i;
                         }
                         else
                         {
                             outVal->variableType=floating;
-                            outVal->f = value1->i / value2->i;
+                            outVal->f = value2->i / value1->i;
                         }
                     }
                     else if (value1->variableType==floating)
                     {
                         outVal->variableType=floating;
-                        outVal->f = value1->f / value2->i;
+                        outVal->f = value2->i / value1->f;
                     }
                     else {
                         InterpreterError("Incompatible variable types");
@@ -1730,17 +1730,17 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
                 {
                     outVal->variableType=floating;
 
-                    if (value2->f==0) {
+                    if (value1->f==0) {
                         InterpreterError("Division by 0");
                         FreeValueHolder(value1);
                         FreeValueHolder(value2);
                         return 0;
                     }
                     else if (value1->variableType==integer) {
-                        outVal->f = value1->i / value2->f;
+                        outVal->f = value2->f / value1->i;
                     }
                     else if (value1->variableType==floating) {
-                        outVal->f = value1->f / value2->f;
+                        outVal->f = value2->f / value1->f;
                     }
                     else {
                         InterpreterError("Incompatible variable types");
