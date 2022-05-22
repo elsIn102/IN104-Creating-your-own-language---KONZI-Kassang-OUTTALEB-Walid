@@ -104,11 +104,10 @@ int main(int argc, char* argv[])
 
 
     /******** Translating the AST into the output file and closing it *********/
-    /*
+
     if (!TranslateAST (ast, outFile))
         printf("Error while translating the AST\n");
     
-    */
     fclose(outFile);
 
 

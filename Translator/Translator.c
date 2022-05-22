@@ -39,6 +39,40 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ")");
             break;
+        case atVariableDef:
+            switch (ast->variableType) {
+                case integer:
+                    fprintf(varFile, "int ");
+                    break;
+                case floating:
+                    fprintf(varFile, "float ");
+                    break;
+                case characters:
+                    fprintf(varFile, "char* ");
+                    break;
+                default:
+                    TranslatorError("Cannot define a variable with this type");
+                    break;
+            }
+            TranslateASTToFiles(ast->child1, varFile, mainFile, funcFile, varFile, comparisonsDict);
+            switch (ast->variableType) {
+                case integer:
+                    fprintf(varFile, " = %d;\n", ast->i);
+                    break;
+                case floating:
+                    fprintf(varFile, " = %f;\n", ast->f);
+                    break;
+                case characters:
+                    fprintf(varFile, " = malloc( 1 + %d);\n", ast->stringLength);
+                    fprintf(varFile, "sprintf(");
+                    TranslateASTToFiles(ast->child1, varFile, mainFile, funcFile, varFile, comparisonsDict);
+                    fprintf(varFile, ", %s);\n", ast->s);
+                    break;
+                default:
+                    TranslatorError("Cannot define a variable with this type");
+                    break;
+            }
+            break;
         case atFuncDef:
             switch (ast->variableType)
             {
@@ -65,35 +99,7 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             TranslateASTToFiles(ast->child3, funcFile, mainFile, funcFile, varFile, comparisonsDict); // Writes the body of the function
             fprintf(funcFile, "}\n\n");
 
-            break;
-        case atVariableDef:
-            /*switch (ast->variableType)
-            {
-                case integer:
-                    fprintf(inMainFile, "int ");
-                    TranslateASTToFiles(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %d",ast->i);
-
-
-                    break;
-
-                case floating:
-                    fprintf(inMainFile, "float ");
-                    TranslateASTToFiles(ast->child1,outMainFile,inMainFile);
-                    fprintf(inMainFile, " = %f",ast->f);
-
-                    break;
-
-                case characters:
-
-                    break;
-
-                case noType:
-
-                    break;
-            }*/
-            break;
-        
+            break;        
         case atTest:
             {
                 struct Comparisons_Dict* compDict;
@@ -191,6 +197,13 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
             break;
+        case atFuncCallArgList:
+            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            if (ast->child2 != NULL) {
+                fprintf(currentFile, ", ");
+                TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            }
+            break;
         case atWhileLoop:
             fprintf(currentFile, "while(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
@@ -235,6 +248,13 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             break;
         case atId:
             fprintf(currentFile, "%s", ast->s);
+            break;
+        case atFuncDefArgsList:
+            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            if (ast->child2!=NULL) {
+                fprintf(currentFile, ",");
+                TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            }
             break;
         case atFuncDefArg:
             switch (ast->variableType)
@@ -281,28 +301,28 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, " + ");
-            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
             break;
         case atMinus:
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, " - ");
-            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
             break;
         case atMultiply:
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, " * ");
-            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
             break;
         case atDivide:
             fprintf(currentFile, "(");
             TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, " / ");
-            TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, comparisonsDict);
+            TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, comparisonsDict);
             fprintf(currentFile, ");\n");
             break;
         case atPrint:
@@ -312,13 +332,13 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
                     switch(ast->variableType)
                     {
                         case integer:
-                            fprintf(currentFile, "printf(\"%%d\n\",");
+                            fprintf(currentFile, "printf(\"%%d\",");
                         break;
                         case floating:
-                            fprintf(currentFile, "printf(\"%%f\\n\",");
+                            fprintf(currentFile, "printf(\"%%f\",");
                         break;
                         case characters:
-                            fprintf(currentFile, "printf(\"%%s\n\",");
+                            fprintf(currentFile, "printf(\"%%s\",");
                         break;
                         default:
                             TranslatorError("Not a valid variable type to print");
@@ -339,6 +359,9 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
                 break;
             }
             break;
+        case atPrintEndl:
+            fprintf(currentFile, "printf(\"\\n\");\n");
+            break;
         default:
             TranslatorError("Node not valid");
             return;
@@ -353,13 +376,16 @@ void MergeFiles(FILE* outFile, FILE* mainFile, FILE* funcFile, FILE* varFile)
     int tempChar;
 
     // Adding the includes
-    //fprintf(outFile, "");
+    fprintf(outFile, "#include <stdio.h>\n");
+    fprintf(outFile, "#include <stdlib.h>\n");
+    fprintf(outFile, "#include <string.h>\n\n");
 
     // Adding the variables definitions
     fseek(varFile, 0, SEEK_SET);
     while((tempChar = fgetc(varFile)) != EOF)
       fputc(tempChar, outFile);
     
+    fprintf(outFile, "\n");
     // Adding the function definitions
     fseek(funcFile, 0, SEEK_SET);
     while((tempChar = fgetc(funcFile)) != EOF)

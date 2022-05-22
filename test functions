@@ -1,4 +1,4 @@
-/*addition of numbers: floats*/
+//////////////////// Addition of numbers: floats
 
 /*Definitions*/
 
@@ -115,7 +115,7 @@ A time out is announced
 
 end
 
-/*Factorial of n*/
+//////////////////////////// Factorial of n
 
 /*Definitions*/
 
@@ -149,7 +149,7 @@ A time out is announced
 
 end
 
-/*Fibonacci of n*/
+//////////////////////////////// Fibonacci of n
 
 /*Definitions*/
 
