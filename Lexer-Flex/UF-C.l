@@ -50,7 +50,7 @@ end            { return END; }
 "announces" {return ANNOUNCES;}  //declare a string
 
 "IQ" {return TYPE_FLOAT;}
-"fans" {return TYPE_INT;}
+"fame" {return TYPE_INT;}
 "size" {return TYPE_STRING;}
 "effectiveness" {return TYPE_VOID;}
 
@@ -82,8 +82,8 @@ end            { return END; }
 "until they give up" {return LOOP_NOTNULL;}
 "until someone splits them up" {return LOOP_EQ;}
 "until they fight back" {return LOOP_GTR;}
-"they come to an agreement" {return LOOP_NOT_EQ;}
-[Mm]"eanwhile" {return LOOP_BEGIN_ACTION;}
+"until they come to an agreement" {return LOOP_NOT_EQ;}
+[Mm]"eanwhile"[,]? {return LOOP_BEGIN_ACTION;}
 
 [Tt]"he match is interrupted" {return BREAK;}
 [Ee]"nd of the round" {return CONTINUE;}
@@ -97,17 +97,17 @@ end            { return END; }
 
 
 "joins" {return ADD;}
-"removes" {return MINUS;}
+"tosses away" {return MINUS;}
 "tears apart" {return DIVIDE;}
 "deals with" {return MULTIPLY;}
 
-[Aa]"nd the competition begins" { return DEFINITIONS_END; }
+([Aa]"nd ")?[Tt]"he competition begins" { return DEFINITIONS_END; }
 
 [-]?[0-9]+ {yylval.ival= atoi(yytext); return INT;} 
 [-]?[0-9]+\.[0-9]+ { yylval.fval = atof(yytext); return FLOAT; }
 
 
-[a-zA-Z0-9]+   {
+[a-zA-Z0-9_]+   {
   yylval.sval = strdup(yytext);
   return STRING;
 }

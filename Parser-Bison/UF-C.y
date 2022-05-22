@@ -9,6 +9,8 @@
   #include <stdio.h>
   #include <stdlib.h>
 
+  #define CreateBasicNode(t, c1, c2, c3) CreateBasicNode(t, c1, c2, c3, line_num)
+  #define CreateWhileNode(comp, v1, v2, b) CreateWhileNode(comp, v1, v2, b, line_num)
 
   extern int line_num;
   extern int stringLength;
@@ -293,7 +295,12 @@ test_else_branch:
 
 while_loop:
   nonVoidArg WHILE nonVoidArg LOOP_NOTNULL endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
-    { $$ = CreateWhileNode(neq, $3, 0, $7); }
+    { 
+      struct AstNode* zeroConstNode = CreateBasicNode(atConstant,NULL, NULL, NULL);
+      zeroConstNode->variableType = integer;
+      zeroConstNode->i = 0;
+      $$ = CreateWhileNode(neq, $3, zeroConstNode, $7); 
+    }
   | nonVoidArg WHILE nonVoidArg LOOP_GTR endls LOOP_BEGIN_ACTION assignmentOrFuncCall 
     { $$ = CreateWhileNode(gtr, $1, $3, $7); }
   | nonVoidArg WHILE nonVoidArg LOOP_NOT_EQ endls LOOP_BEGIN_ACTION assignmentOrFuncCall 

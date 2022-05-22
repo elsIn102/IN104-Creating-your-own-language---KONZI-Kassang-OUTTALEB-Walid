@@ -33,14 +33,16 @@ struct AstNode
     int stringLength;
     char* s; int i; float f;
 
+    int lineNumInCode;
+
     struct AstNode *child1;
     struct AstNode *child2;
     struct AstNode *child3;
 };
 
-struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, struct AstNode* _child2, struct AstNode* _child3);
+struct AstNode* CreateBasicNode (enum AstType _type, struct AstNode* _child1, struct AstNode* _child2, struct AstNode* _child3, const int lineNum);
 
-struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode* _var1, struct AstNode* _var2, struct AstNode* _whileBranch);
+struct AstNode* CreateWhileNode (enum ComparatorType _comparator, struct AstNode* _var1, struct AstNode* _var2, struct AstNode* _whileBranch, const int lineNum);
 
 void FreeAST (struct AstNode* ast);
 

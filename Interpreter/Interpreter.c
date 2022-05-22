@@ -6,11 +6,11 @@
 #include "../Utils/ComparisonDictionnary.h"
 #include "../Utils/SymbolTableData.h"
 
-#define InterpreterError(msg) InterpreterError_Expand(msg, __LINE__)
+#define InterpreterError(msg) InterpreterError_Expand(msg, __LINE__, ast->lineNumInCode)
 
-void InterpreterError_Expand(char* error_msg, const int line)
+void InterpreterError_Expand(char* error_msg, const int line, const int lineInCode)
 {
-    printf("Error from the interpreter at line %d : %s\n", line, error_msg);
+    printf("Error at line %d (Interpreter.c line %d) : %s\n", lineInCode, line, error_msg);
 }
 
 // Copy a char* from source to dest
@@ -73,7 +73,7 @@ int GetSymbolValue (char* symbolId, struct ValueHolder** outVal, struct HashStru
     struct VariableStruct* varStruct;
     // Using the lazy evaluation to first look at local variables
     if (!(localSymbolTable!=NULL && TryFind_Hashtable(localSymbolTable, symbolId, &varStruct)) && !TryFind_Hashtable(globalSymbolTable, symbolId, &varStruct)) {
-        printf("No defined variable with this name (GetSymbolValue)\n");
+        printf("No defined symbol with the name %s (GetSymbolValue)\n", symbolId);
         return 0;
     }
 
@@ -839,8 +839,11 @@ int InterpreteAST (struct AstNode* ast, struct ValueHolder* outVal, struct HashS
 
                     // Call the function and return the output value
                     if (!InterpreteAST(funcVarStruct->functionBody, NULL, globalSymbolTable, funcVarStruct->argumentsTable, NULL, NULL, outVal, NULL)) { // If an error occurred while calling the function
-                        InterpreterError("Error while calling the function");
+                        char* msg = malloc(37);
+                        sprintf(msg, "Error while calling the function %s", funcVarStruct->id);
+                        InterpreterError(msg);
                         FreeValueHolder(funcIdHolder);
+                        free(msg);
                         return 0;
                     }
                 }
