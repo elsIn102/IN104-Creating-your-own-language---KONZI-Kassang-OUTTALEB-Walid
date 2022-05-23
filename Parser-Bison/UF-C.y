@@ -38,7 +38,7 @@
 
 
 // define the constant-string tokens:
-%token END ENDL
+%token ENDL
 %token DEFINITIONS_END
 
 %token ASSIGN ASSIGN_FUNC AND
@@ -88,10 +88,10 @@ UF-C:
   | start { *ast = $1; }
   ;
 start:
-    definitions DEFINITIONS_END endls body_lines footer { $$ = CreateBasicNode(atRoot, $1, $4, NULL); }
-  | definitions footer { $$ = CreateBasicNode(atRoot, $1, NULL, NULL); }
-  | body_lines footer { $$ = CreateBasicNode(atRoot, NULL, $1, NULL); }
-  | footer { $$ = CreateBasicNode(atRoot, NULL, NULL, NULL); }
+    definitions DEFINITIONS_END endls body_lines { $$ = CreateBasicNode(atRoot, $1, $4, NULL); }
+  | definitions { $$ = CreateBasicNode(atRoot, $1, NULL, NULL); }
+  | body_lines { $$ = CreateBasicNode(atRoot, NULL, $1, NULL); }
+  | { $$ = CreateBasicNode(atRoot, NULL, NULL, NULL); }
   ;
 
 definitions:
@@ -343,11 +343,6 @@ return:
   nonVoidArg RETURN { $$ = CreateBasicNode(atReturn, $1, NULL, NULL); }
   ;
 
-
-footer:
-  END
-  | END endls
-  ;
 endls:
   ENDL endls
   | ENDL

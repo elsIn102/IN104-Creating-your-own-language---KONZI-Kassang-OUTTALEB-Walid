@@ -42,7 +42,6 @@
 
 [Tt]"raining is over" {return END_FUNC;}
 [ \t] ;
-end            { return END; }
 
 
 "has this number of fans"[ ]?":" {return FANS;} //declaration of variables: int
