@@ -59,14 +59,14 @@
 "bets on" {return BEGIN_CONDITION;}
 "takes the rest of the bets" {return BEGIN_ELSE;}
 [Ff]"inally"[,]? { return BEGIN_ELSE_BRANCH;}
-[Tt]"he gambling den closes" { return END_CONDITION; }
+([Aa]"nd ")?[Tt]"he gambling den closes" { return END_CONDITION; }
 "and" {return AND;}
 "using" {return BEGIN_ARGS;}
 "with" {return BEGIN_ARGS;}
 "enrolls" {return BEGIN_ARGS;}
 "and gives the money to" {return BEGIN_RETURN_VAR;}
 [Aa]" new tournament begins" {return BEGIN_TEST;}
-[Aa]"nd the gambling den opens" {return BEGIN_BRANCH;} 
+([Aa]"nd ")?[Tt]"he gambling den opens" {return BEGIN_BRANCH;} 
 [Mm]"atch" {return BEGIN_COMPARISON; }
 ":" {return COLON;}
 "-" {return HYPHEN;}

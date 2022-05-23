@@ -6,7 +6,7 @@ void TranslatorError(char* error_msg)
     printf("Error from the translator : %s\n", error_msg);
 }
 
-void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile, FILE* funcFile, FILE* varFile, struct Comparisons_Dict* comparisonsDict)
+void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile, FILE* funcFile, FILE* varFile, struct Comparisons_Dict** comparisonsDict)
 {
     if (ast==NULL)
         return;
@@ -110,21 +110,19 @@ void TranslateASTToFiles (struct AstNode* ast, FILE* currentFile, FILE* mainFile
                 else
                 {
                     // Fills the dictionnary with all the comparisons
-                    TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, compDict);
+                    TranslateASTToFiles(ast->child1, currentFile, mainFile, funcFile, varFile, &compDict);
                     //Writes the if/else_if/else statements using the dicionnary
-                    TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, compDict);
-
-                    FreeComparisonsDict(compDict);
+                    TranslateASTToFiles(ast->child2, currentFile, mainFile, funcFile, varFile, &compDict);
                 }
             }
             break;
         case atComparisonDeclaration:
-            Add_ComparisonsDict(&comparisonsDict, ast->i, ast->comparator, ast->child1, ast->child2);
+            Add_ComparisonsDict(comparisonsDict, ast->i, ast->comparator, ast->child1, ast->child2);
             break;
         case atComparisonId: // Writes the comparison of the two values corresponding to the ID
             {
                 struct ComparisonValue *comparison;
-                if (!TryFind_ComparisonsDict(comparisonsDict, ast->i, &comparison))
+                if (!TryFind_ComparisonsDict(*comparisonsDict, ast->i, &comparison))
                 {
                     char* msg;
                     sprintf(msg, "Unable to find the comparison (match %d) in this dictionnary", ast->i);

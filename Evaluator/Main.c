@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
 
     if (!TranslateAST (ast, outFile))
         printf("Error while translating the AST\n");
-    
     fclose(outFile);
 
 
