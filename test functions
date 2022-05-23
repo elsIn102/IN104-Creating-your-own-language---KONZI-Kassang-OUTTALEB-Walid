@@ -29,8 +29,6 @@ the ring girl shows the wits of c
 A time out is announced
 
 
-end
-
 
 /////////////////////// WHILE LOOP
 
@@ -58,10 +56,6 @@ meanwhile instructions enrolls noone
 the ring girl shows "After the loop, b = "
 the ring girl shows the wits of b
 A time out is announced
-
-end
-
-
 
 
 
@@ -113,7 +107,7 @@ the ring girl shows "c = "
 the ring girl shows the wits of c
 A time out is announced
 
-end
+
 
 //////////////////////////// Factorial of n
 
@@ -147,7 +141,7 @@ The ring girl shows "! = "
 the ring girl shows the fans of r
 A time out is announced
 
-end
+
 
 //////////////////////////////// Fibonacci of n
 
@@ -186,4 +180,3 @@ The ring girl shows ") = "
 the ring girl shows the fans of a
 A time out is announced
 
-end
