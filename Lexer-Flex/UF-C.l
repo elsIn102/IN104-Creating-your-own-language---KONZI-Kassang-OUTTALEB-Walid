@@ -44,7 +44,7 @@
 [ \t] ;
 
 
-"has this number of fans"[ ]?":" {return FANS;} //declaration of variables: int
+"has this number of fans"[ ]?[:]? {return FANS;} //declaration of variables: int
 "has an IQ of" { return IQ; }  //float
 "announces" {return ANNOUNCES;}  //declare a string
 
