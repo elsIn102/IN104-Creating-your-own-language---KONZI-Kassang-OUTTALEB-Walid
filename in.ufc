@@ -1,46 +1,39 @@
 
 /*Definitions*/
 
-z has an IQ of 0.0
+McGregor has this number of fans: 16
 
-a has an IQ of 25.0
-b has an IQ of 150.0
-c has an IQ of 1000.0
 
-Add is starting their training with the smart x and the smart y to increase their IQ:
-    x joins y and hits z
-    z is thrown out
+Sarko has this number of fans: 0
+Bibi has this number of fans: 1
+
+Knuckleface has this number of fans: 0
+
+MightyPunch is starting their training with the famous Underdog to increase their fame:
+    Bibi hits Knuckleface
+    Sarko joins Bibi and hits Bibi
+    Knuckleface hits Sarko
+
+    Underdog joins 1 and hits Underdog
+    Underdog is thrown out
 training is over
 
-Sub is starting their training with the smart x and the smart y to increase their IQ:
-    x tosses away y and hits z
-    z is thrown out
-training is over
+TheReferee has this number of fans: 0
 
-Mult is starting their training with the smart x and the smart y to increase their IQ:
-    x deals with y and hits z
-    z is thrown out
-training is over
-
-And the competition begins
+The competition begins
 
 
 /*Main*/
 
-A new tournament begins :
-    -Match 1: a challenges b
-    -Match 2: b challenges c
-And the gambling den opens :
-    -Add bets on 1 and 2 using a and b and gives the money to c
-    -Sub bets on 2 using c and 24.0 and gives the money to c
-    Finally Mult takes the rest of the bets using b and a and gives the money to c
-The gambling den closes
+McGregor beats down TheReferee until they come to an agreement
+Meanwhile MightyPunch punches TheReferee with TheReferee
 
-the ring girl shows "z = "
-the ring girl shows the wits of z
+The ring girl shows "Fib("
+The ring girl shows the fans of McGregor
+The ring girl shows ") = "
+the ring girl shows the fans of Sarko
 A time out is announced
 
-the ring girl shows "c = "
-the ring girl shows the wits of c
-A time out is announced
+
+
 
